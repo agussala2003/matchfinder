@@ -1,24 +1,70 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import "../global.css";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+// Fuentes
+import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
+import { Oswald_500Medium, Oswald_700Bold, useFonts } from '@expo-google-fonts/oswald';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+// Supabase
+import { supabase } from '@/lib/supabase';
+import { Session } from '@supabase/supabase-js';
+
+// Contexto de Toasts
+import { ToastProvider } from '@/context/ToastContext';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const [session, setSession] = useState<Session | null>(null);
+  const [initialized, setInitialized] = useState(false);
+  
+  const segments = useSegments();
+  const router = useRouter();
+
+  const [fontsLoaded] = useFonts({
+    Oswald_700Bold, Oswald_500Medium,
+    Inter_400Regular, Inter_700Bold,
+  });
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setInitialized(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!initialized || !fontsLoaded) return;
+
+    const inAuthGroup = segments[0] === 'login' || segments[0] === 'onboarding' || segments[0] === 'forgot-password';
+
+    if (!session && !inAuthGroup) {
+      router.replace('/login');
+    }
+  }, [session, segments, initialized, fontsLoaded, router]);
+
+  if (!initialized || !fontsLoaded) {
+    return (
+      <View className="flex-1 bg-black items-center justify-center">
+        <ActivityIndicator size="large" color="#39FF14" />
+      </View>
+    );
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <ToastProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="forgot-password" />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </ToastProvider>
   );
 }

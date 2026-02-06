@@ -1,7 +1,7 @@
-import Constants from 'expo-constants';
+import Constants from 'expo-constants'
 
 // Valores por defecto (Fallback)
-const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=User';
+const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=User'
 
 // Aquí centralizamos toda la config de la app
 export const CONFIG = {
@@ -11,7 +11,7 @@ export const CONFIG = {
     anonKey: process.env.EXPO_PUBLIC_SUPABASE_KEY || '',
     storageBucket: 'avatars', // Nombre del bucket en Supabase
   },
-  
+
   // Límites y Reglas de Negocio
   limits: {
     maxAvatarSizeMB: 2,
@@ -29,5 +29,5 @@ export const CONFIG = {
   app: {
     version: Constants.expoConfig?.version || '1.0.0',
     name: Constants.expoConfig?.name || 'MatchFinder',
-  }
-};
+  },
+}

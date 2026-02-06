@@ -5,10 +5,10 @@
  * T = Tipo de dato que devuelve (ej: User, Team, etc.)
  */
 export interface ServiceResponse<T = void> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  errorCode?: string; 
+  success: boolean
+  data?: T
+  error?: string
+  errorCode?: string
 }
 
 /**
@@ -16,9 +16,9 @@ export interface ServiceResponse<T = void> {
  * (Coinciden con el ENUM 'rol_enum' de Supabase)
  */
 export enum UserRole {
-  ADMIN = 'ADMIN',       // Capitán
+  ADMIN = 'ADMIN', // Capitán
   SUB_ADMIN = 'SUB_ADMIN', // Subcapitán
-  PLAYER = 'PLAYER',     // Jugador regular
+  PLAYER = 'PLAYER', // Jugador regular
 }
 
 /**

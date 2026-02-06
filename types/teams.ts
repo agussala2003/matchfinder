@@ -1,27 +1,27 @@
 // types/teams.ts
-import { CATEGORIAS_LISTA, ZONAS_AMBA } from '@/lib/constants';
-import { z } from 'zod';
+import { CATEGORIAS_LISTA, ZONAS_AMBA } from '@/lib/constants'
+import { z } from 'zod'
 
 // --- INTERFACES (MODELOS) ---
 
 export interface Team {
-  id: string;
-  name: string;
-  captain_id: string;
-  elo_rating: number;
-  home_zone: typeof ZONAS_AMBA[number];
-  category: 'MALE' | 'FEMALE' | 'MIXED';
-  share_code: string;
-  logo_url?: string;
-  created_at: string;
+  id: string
+  name: string
+  captain_id: string
+  elo_rating: number
+  home_zone: (typeof ZONAS_AMBA)[number]
+  category: 'MALE' | 'FEMALE' | 'MIXED'
+  share_code: string
+  logo_url?: string
+  created_at: string
 }
 
 export interface TeamMember {
-  team_id: string;
-  user_id: string;
-  role: 'ADMIN' | 'SUB_ADMIN' | 'PLAYER';
-  status: 'ACTIVE' | 'INACTIVE';
-  joined_at: string;
+  team_id: string
+  user_id: string
+  role: 'ADMIN' | 'SUB_ADMIN' | 'PLAYER'
+  status: 'ACTIVE' | 'INACTIVE'
+  joined_at: string
 }
 
 // --- VALIDACIONES ZOD ---
@@ -35,7 +35,7 @@ export const createTeamSchema = z.object({
     .max(30, 'El nombre es muy largo (máx 30)')
     .regex(/^[a-zA-Z0-9\s\-_]+$/, 'El nombre contiene caracteres inválidos') // Permite letras, números, espacios, guiones
     .trim(),
-  
+
   // Validamos que la zona sea una de las permitidas en nuestra lista
   // El "as [string, ...string[]]" es un truco técnico de TypeScript para que Zod acepte el array constante
   homeZone: z.enum(ZONAS_AMBA as unknown as [string, ...string[]], {
@@ -45,9 +45,9 @@ export const createTeamSchema = z.object({
   category: z.enum(CATEGORIAS_LISTA as [string, ...string[]], {
     message: 'Selecciona una categoría válida',
   }),
-  
+
   captainId: z.string().uuid('ID de usuario inválido'),
-});
+})
 
 // Tipo inferido para usar en el servicio
-export type CreateTeamInput = z.infer<typeof createTeamSchema>;
+export type CreateTeamInput = z.infer<typeof createTeamSchema>

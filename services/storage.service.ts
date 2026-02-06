@@ -1,40 +1,32 @@
-import { CONFIG } from '@/lib/config'
 import { supabase } from '@/lib/supabase'
 
 class StorageService {
   /**
    * Sube una imagen a Supabase Storage y devuelve la URL pública.
-   * Versión optimizada para Expo 50+ usando ArrayBuffer directo.
+   * @param uri URI local de la imagen
+   * @param bucket Nombre del bucket ('avatars' | 'team-logos')
+   * @param path Ruta del archivo (ej: 'user-123/avatar.png')
    */
-  async uploadAvatar(uri: string, userId: string): Promise<string | null> {
+  async uploadImage(uri: string, bucket: string, path: string): Promise<string | null> {
     try {
-      // 1. Transformar la imagen en un buffer (binario) usando fetch nativo
       const response = await fetch(uri)
       const arrayBuffer = await response.arrayBuffer()
 
-      // 2. Configurar nombre y tipo
-      const fileName = `${userId}/avatar.png`
-      const contentType = 'image/png'
+      const contentType = 'image/png' // Asumimos PNG o JPEG genérico
 
-      // 3. Subir a Supabase
-      const { error } = await supabase.storage
-        .from(CONFIG.supabase.storageBucket)
-        .upload(fileName, arrayBuffer, {
-          contentType,
-          upsert: true, // Sobrescribir la anterior
-        })
+      const { error } = await supabase.storage.from(bucket).upload(path, arrayBuffer, {
+        contentType,
+        upsert: true,
+      })
 
       if (error) throw error
 
-      // 4. Obtener URL pública
-      const { data: urlData } = supabase.storage
-        .from(CONFIG.supabase.storageBucket)
-        .getPublicUrl(fileName)
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path)
 
-      // Truco: Agregamos timestamp para forzar que la imagen se refresque en la app
+      // Timestamp para evitar caché
       return `${urlData.publicUrl}?t=${new Date().getTime()}`
     } catch (error) {
-      console.error('Error uploading avatar:', error)
+      console.error(`Error uploading to ${bucket}:`, error)
       return null
     }
   }

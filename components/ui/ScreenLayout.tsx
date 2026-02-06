@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar'
 import React from 'react'
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ScrollViewProps,
   View,
   ViewProps,
 } from 'react-native'
@@ -14,27 +14,21 @@ interface ScreenLayoutProps extends ViewProps {
   children: React.ReactNode
   scrollable?: boolean
   withPadding?: boolean
-  loading?: boolean
-  keyboardBehavior?: 'padding' | 'height' | 'position'
+  className?: string
+  loading?: boolean // Por si quieres agregar un spinner global luego
 }
 
-export function ScreenLayout({
+export const ScreenLayout = ({
   children,
   scrollable = false,
-  withPadding = true,
-  loading = false,
-  keyboardBehavior = Platform.OS === 'ios' ? 'padding' : 'height',
+  withPadding = false,
   className,
+  loading = false,
   ...props
-}: ScreenLayoutProps) {
-  if (loading) {
-    return (
-      <View className='flex-1 bg-dark items-center justify-center'>
-        <ActivityIndicator size='large' color='#39FF14' />
-      </View>
-    )
-  }
+}: ScreenLayoutProps) => {
+  const keyboardBehavior = Platform.OS === 'ios' ? 'padding' : 'height'
 
+  // Contenido común
   const content = (
     <View className={`flex-1 ${withPadding ? 'px-6' : ''} ${className || ''}`} {...props}>
       {children}
@@ -44,7 +38,12 @@ export function ScreenLayout({
   return (
     <View className='flex-1 bg-dark'>
       <StatusBar style='light' />
-      <SafeAreaView edges={['top', 'bottom']} className='flex-1'>
+
+      {/* 1. edges={['top']}: Solo protegemos arriba (Notch). 
+            Abajo dejamos que el contenido fluya para evitar el borde negro cortado,
+            y lo manejamos con padding en el ScrollView.
+      */}
+      <SafeAreaView edges={['top', 'left', 'right']} className='flex-1'>
         <KeyboardAvoidingView
           behavior={keyboardBehavior}
           className='flex-1'
@@ -52,11 +51,18 @@ export function ScreenLayout({
         >
           {scrollable ? (
             <ScrollView
+              // 2. 'flex-1' AQUÍ es la clave para que ocupe todo el alto disponible
+              className={`flex-1 ${className || ''}`}
+              contentContainerStyle={{
+                flexGrow: 1,
+                // 3. Movemos el padding aquí para que la scrollbar no se corte
+                paddingHorizontal: withPadding ? 24 : 0,
+                paddingBottom: 20, // Espacio extra abajo para gestos
+              }}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-              keyboardShouldPersistTaps='handled'
+              {...(props as ScrollViewProps)}
             >
-              {content}
+              {children}
             </ScrollView>
           ) : (
             content

@@ -9,7 +9,10 @@ export const CONFIG = {
   supabase: {
     url: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
     anonKey: process.env.EXPO_PUBLIC_SUPABASE_KEY || '',
-    storageBucket: 'avatars', // Nombre del bucket en Supabase
+    storageBucket: {
+      avatars: process.env.EXPO_PUBLIC_SUPABASE_STORAGE_AVATARS || 'avatars',
+      teamLogos: process.env.EXPO_PUBLIC_SUPABASE_STORAGE_TEAM_LOGOS || 'team-logos',
+    },
   },
 
   // Límites y Reglas de Negocio

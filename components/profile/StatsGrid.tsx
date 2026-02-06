@@ -3,6 +3,7 @@ import { Target, TrendingUp, Trophy } from 'lucide-react-native'
 import React from 'react'
 import { Text, View } from 'react-native'
 
+// Falta cargar las estadisticas reales desde el backend
 export function StatsGrid() {
   return (
     <Card variant='glass' className='flex-row justify-between'>

@@ -79,7 +79,7 @@ export default function CreateTeamScreen() {
     <ScreenLayout scrollable withPadding>
       <Stack.Screen
         options={{
-          title: 'Fundar Club',
+          title: 'Crear Club',
           headerShown: true,
           headerStyle: { backgroundColor: '#121212' },
           headerTintColor: '#fff',

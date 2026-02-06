@@ -22,7 +22,7 @@ export function ProfileHeader({ profile, onEditAvatar }: ProfileHeaderProps) {
     <View className='items-center pt-10 pb-6'>
       {/* Avatar Container */}
       <TouchableOpacity onPress={onEditAvatar} activeOpacity={0.8} className='relative mb-5'>
-        <View className='w-32 h-32 bg-gray-800 rounded-full items-center justify-center border-4 border-primary shadow-2xl shadow-primary/20 overflow-hidden'>
+        <View className='w-32 h-32 bg-gray-900 rounded-full items-center justify-center border-4 border-primary shadow-2xl shadow-primary/20 overflow-hidden'>
           {profile?.avatar_url ? (
             <Image
               source={{ uri: profile.avatar_url }}
@@ -43,17 +43,15 @@ export function ProfileHeader({ profile, onEditAvatar }: ProfileHeaderProps) {
       </TouchableOpacity>
 
       {/* Info Principal */}
-      <View className='items-center px-4'>
+      <View className='flex items-center gap-3'>
         <Text className='text-white font-title text-3xl uppercase tracking-wide text-center'>
           {profile?.full_name || 'Cargando...'}
         </Text>
 
-        <Text className='text-gray-400 font-body text-sm mt-1'>
-          @{profile?.username || 'usuario'}
-        </Text>
+        <Text className='text-gray-400 font-body text-sm'>@{profile?.username || 'usuario'}</Text>
 
         {/* Badge Posición */}
-        <View className='mt-4 bg-primary/10 px-5 py-1.5 rounded-full border border-primary/30'>
+        <View className='bg-primary/10 px-5 py-1.5 rounded-full border border-primary/30'>
           <Text className='text-primary font-title text-xs tracking-widest uppercase'>
             {POSICIONES_ARGENTINAS[profile?.position as Posicion] || 'JUGADOR LIBRE'}
           </Text>

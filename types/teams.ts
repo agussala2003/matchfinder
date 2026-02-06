@@ -1,6 +1,7 @@
 // types/teams.ts
 import { CATEGORIAS_LISTA, ZONAS_AMBA } from '@/lib/constants'
 import { z } from 'zod'
+import { UserProfile } from './auth'
 
 // --- INTERFACES (MODELOS) ---
 
@@ -22,6 +23,13 @@ export interface TeamMember {
   role: 'ADMIN' | 'SUB_ADMIN' | 'PLAYER'
   status: 'ACTIVE' | 'INACTIVE'
   joined_at: string
+}
+
+export interface TeamMemberDetail {
+  user_id: string
+  role: 'ADMIN' | 'PLAYER'
+  profile: UserProfile
+  status: 'ACTIVE' | 'PENDING' | 'INACTIVE'
 }
 
 // --- VALIDACIONES ZOD ---

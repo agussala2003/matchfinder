@@ -61,7 +61,7 @@ export function Select({
         onRequestClose={() => setVisible(false)}
       >
         <View className='flex-1 bg-black/80 justify-end'>
-          <View className='bg-card rounded-t-3xl max-h-[70%] border-t border-gray-700 pb-8'>
+          <View className='bg-card rounded-t-3xl max-h-[70%] pb-8'>
             {/* Header del Modal */}
             <View className='p-4 border-b border-gray-800 flex-row justify-between items-center'>
               <Text className='text-white font-title text-xl'>{label}</Text>

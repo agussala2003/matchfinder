@@ -1,6 +1,11 @@
-import { View } from 'lucide-react-native'
 import React from 'react'
-import { ActivityIndicator, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native'
+import {
+  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  TouchableOpacityProps,
+  View,
+} from 'react-native'
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
 

@@ -55,7 +55,7 @@ export default function ProfileScreen() {
         setMyRequests(resRequests.success && resRequests.data ? resRequests.data : [])
       }
     } catch (e) {
-      console.log('Error cargando perfil', e)
+      console.error('Error cargando perfil', e)
     } finally {
       setLoading(false)
     }

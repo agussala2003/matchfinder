@@ -1,36 +1,37 @@
 import Constants from 'expo-constants'
 
-// Valores por defecto (Fallback)
-const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=User'
-
-// Aquí centralizamos toda la config de la app
 export const CONFIG = {
-  // Configuración de Supabase (Leída de variables de entorno o defaults)
+  // Supabase Configuration
   supabase: {
     url: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
     anonKey: process.env.EXPO_PUBLIC_SUPABASE_KEY || '',
     storageBucket: {
-      avatars: process.env.EXPO_PUBLIC_SUPABASE_STORAGE_AVATARS || 'avatars',
-      teamLogos: process.env.EXPO_PUBLIC_SUPABASE_STORAGE_TEAM_LOGOS || 'team-logos',
+      avatars: 'avatars',
+      teamLogos: 'team-logos',
     },
   },
 
-  // Límites y Reglas de Negocio
+  // Application Limits
   limits: {
+    maxNameLength: 30,
+    maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
+    minPasswordLength: 6,
+    maxTeamMembers: 25,
     maxAvatarSizeMB: 2,
     maxTeamNameLength: 30,
-    minPasswordLength: 6,
   },
 
-  // Recursos por defecto
+  // Default Values
   defaults: {
-    avatar: DEFAULT_AVATAR,
-    teamLogo: 'https://placehold.co/400x400/121212/39FF14?text=TEAM',
+    avatarUrl: 'https://ui-avatars.com/api/?background=39FF14&color=000&name=User',
+    teamLogoUrl: 'https://placehold.co/400x400/121212/39FF14?text=TEAM',
+    eloRating: 1200,
   },
 
-  // Info de la App (Leída del app.json)
+  // Application Info
   app: {
-    version: Constants.expoConfig?.version || '1.0.0',
     name: Constants.expoConfig?.name || 'MatchFinder',
+    version: Constants.expoConfig?.version || '1.0.0',
+    buildNumber: Constants.expoConfig?.extra?.buildNumber || '1',
   },
-}
+} as const

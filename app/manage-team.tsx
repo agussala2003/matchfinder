@@ -1,21 +1,9 @@
 import * as Clipboard from 'expo-clipboard'
 import * as ImagePicker from 'expo-image-picker'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
-import {
-  Camera,
-  Check,
-  Copy,
-  Crown,
-  LogOut,
-  MapPin,
-  MoreVertical,
-  Pencil,
-  Shield,
-  Users,
-  X,
-} from 'lucide-react-native'
+import { Copy, LogOut, MapPin, Pencil, Users } from 'lucide-react-native'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native'
 
 // Services & Context
 import { useToast } from '@/context/ToastContext'
@@ -28,8 +16,10 @@ import { Team } from '@/types/teams'
 // Components
 import { EditTeamModal } from '@/components/teams/EditTeamModal'
 import { MemberActionModal } from '@/components/teams/MemberActionModal'
+import { PendingRequestCard } from '@/components/teams/PendingRequestCard'
+import { TeamMemberCard } from '@/components/teams/TeamMemberCard'
+import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
 import { CONFIG } from '@/lib/config'
@@ -46,10 +36,10 @@ export default function ManageTeamScreen() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
 
-  // Modales
+  // Modals
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [showMemberModal, setShowMemberModal] = useState(false)
-  const [showEditTeamModal, setShowEditTeamModal] = useState(false) // <--- NUEVO ESTADO
+  const [showEditTeamModal, setShowEditTeamModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMemberDetail | null>(null)
 
   useEffect(() => {
@@ -86,17 +76,15 @@ export default function ManageTeamScreen() {
     }
   }
 
-  // --- PERMISOS ---
-  // Buscamos mi rol en la lista de miembros cargada
-  const myMemberProfile = members.find((m) => m.user_id === currentUser)
+  // --- PERMISSIONS ---
+  const myMemberProfile = members.find((m: TeamMemberDetail) => m.user_id === currentUser)
   const myRole = myMemberProfile?.role
-  const canEdit = myRole === UserRole.ADMIN || myRole === UserRole.SUB_ADMIN // <--- PERMISO MAESTRO
-  const isCaptain = team?.captain_id === currentUser // Para funciones exclusivas de dueño (como borrar equipo si existiera)
+  const canEdit = myRole === UserRole.ADMIN || myRole === UserRole.SUB_ADMIN
+  const isCaptain = team?.captain_id === currentUser
 
-  // --- ACCIONES DE EDICIÓN ---
-
+  // --- EDIT ACTIONS ---
   async function handleEditShield() {
-    if (!canEdit) return // Protección extra
+    if (!canEdit) return
 
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (permissionResult.granted === false) {
@@ -121,7 +109,6 @@ export default function ManageTeamScreen() {
       )
 
       if (publicUrl) {
-        // La política RLS actualizada permitirá esto a SUB_ADMIN también
         const update = await teamsService.updateTeam(team.id, { logo_url: publicUrl })
         if (update.success && update.data) {
           setTeam(update.data)
@@ -154,7 +141,7 @@ export default function ManageTeamScreen() {
     }
   }
 
-  // --- GESTIÓN DE SOLICITUDES ---
+  // --- REQUEST MANAGEMENT ---
   async function handleRequest(userId: string, accept: boolean) {
     if (!team) return
     const status = accept ? TeamMemberStatus.ACTIVE : TeamMemberStatus.INACTIVE
@@ -167,24 +154,14 @@ export default function ManageTeamScreen() {
     }
   }
 
-  // --- GESTIÓN DE ROLES ---
+  // --- ROLE MANAGEMENT ---
   const openMemberOptions = (member: TeamMemberDetail) => {
-    // Solo permitimos abrir opciones si soy ADMIN o SUB_ADMIN
-    // Y si tengo rango superior o igual para gestionar (simplificado: solo Admin gestiona roles críticos por ahora, o SubAdmin gestiona Players)
-
-    // Regla de Negocio:
-    // ADMIN puede tocar a cualquiera (menos a sí mismo).
-    // SUB_ADMIN NO puede gestionar roles por ahora (según requerimiento habitual),
-    // pero si quieres que SUB_ADMIN expulse players, agrega: (myRole === 'SUB_ADMIN' && member.role === 'PLAYER')
-
     if (isCaptain && member.user_id !== currentUser) {
       setSelectedMember(member)
       setShowMemberModal(true)
     }
   }
 
-  // ... (handleKickMember, handleMakeCaptain, etc. se mantienen IGUALES) ...
-  // Solo los copio resumidos para el contexto, la lógica es la misma de tu archivo anterior.
   async function handleKickMember() {
     if (!team || !selectedMember) return
     setShowMemberModal(false)
@@ -200,6 +177,7 @@ export default function ManageTeamScreen() {
       showToast('Error al expulsar miembro', 'error')
     }
   }
+
   async function handleMakeCaptain() {
     if (!team || !selectedMember) return
     setShowMemberModal(false)
@@ -211,6 +189,7 @@ export default function ManageTeamScreen() {
       showToast('Error al transferir capitanía.', 'error')
     }
   }
+
   async function handleMakeSubCaptain() {
     if (!team || !selectedMember) return
     setShowMemberModal(false)
@@ -226,6 +205,7 @@ export default function ManageTeamScreen() {
       showToast('Error al actualizar rol', 'error')
     }
   }
+
   async function handleDemoteToPlayer() {
     if (!team || !selectedMember) return
     setShowMemberModal(false)
@@ -241,6 +221,7 @@ export default function ManageTeamScreen() {
       showToast('Error al actualizar rol', 'error')
     }
   }
+
   async function onConfirmLeave() {
     setShowLeaveModal(false)
     if (!team || !currentUser) return
@@ -253,27 +234,55 @@ export default function ManageTeamScreen() {
     }
   }
 
-  const activeMembers = members.filter((m) => m.status === 'ACTIVE')
-  const pendingMembers = members.filter((m) => m.status === 'PENDING')
+  const activeMembers = members.filter((m: TeamMemberDetail) => m.status === 'ACTIVE')
+  const pendingMembers = members.filter((m: TeamMemberDetail) => m.status === 'PENDING')
 
-  if (loading)
+  // LOADING STATE
+  if (loading) {
     return (
-      <View className='flex-1 bg-dark items-center justify-center'>
-        <ActivityIndicator size='large' color='#39FF14' />
-      </View>
-    )
-  if (!team)
-    return (
-      <ScreenLayout scrollable withPadding className='bg-dark'>
+      <ScreenLayout scrollable={false} withPadding={false} className='bg-background'>
+        <Stack.Screen
+          options={{
+            title: 'Gestión de Equipo',
+            headerShown: true,
+            headerStyle: { backgroundColor: '#121212' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
+          }}
+        />
         <View className='flex-1 items-center justify-center'>
-          <Text className='text-gray-400'>Error</Text>
-          <Button title='Volver' onPress={() => router.back()} />
+          <ActivityIndicator size='large' color='#39FF14' />
         </View>
       </ScreenLayout>
     )
+  }
 
+  // ERROR STATE
+  if (!team) {
+    return (
+      <ScreenLayout scrollable withPadding className='bg-background'>
+        <Stack.Screen
+          options={{
+            title: 'Gestión de Equipo',
+            headerShown: true,
+            headerStyle: { backgroundColor: '#121212' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
+          }}
+        />
+        <View className='flex-1 items-center justify-center'>
+          <Text className='text-gray-400 text-center mb-4'>
+            No se pudo cargar la información del equipo
+          </Text>
+          <Button title='Volver' variant='secondary' onPress={() => router.back()} />
+        </View>
+      </ScreenLayout>
+    )
+  }
+
+  // MAIN CONTENT
   return (
-    <ScreenLayout scrollable loading={false} withPadding={false} className='bg-dark'>
+    <ScreenLayout scrollable withPadding={false} className='bg-background'>
       <Stack.Screen
         options={{
           title: 'Gestión de Equipo',
@@ -284,56 +293,36 @@ export default function ManageTeamScreen() {
         }}
       />
 
-      {/* HEADER */}
-      <View>
-        <View className='items-center pb-4 pt-6'>
-          {/* Escudo Editable */}
-          <TouchableOpacity
-            onPress={handleEditShield}
-            activeOpacity={canEdit ? 0.8 : 1}
-            className='relative'
-          >
-            <View className='w-28 h-28 bg-gray-800 rounded-2xl items-center justify-center border-2 border-gray-700 overflow-hidden'>
-              {team.logo_url ? (
-                <Image
-                  source={{ uri: team.logo_url }}
-                  className='w-full h-full'
-                  resizeMode='cover'
-                />
-              ) : (
-                <Shield size={48} color='#6B7280' strokeWidth={2} />
-              )}
-            </View>
-            {/* Mostrar cámara solo si puede editar */}
-            {canEdit && (
-              <View className='absolute -bottom-2 -right-2 bg-primary p-2.5 rounded-full border-2 border-gray-950'>
-                <Camera size={16} color='#000' strokeWidth={2.5} />
-              </View>
-            )}
-          </TouchableOpacity>
-          {uploading && (
-            <View className='mt-2 bg-primary/10 px-3 py-1 rounded-full'>
-              <Text className='text-primary text-xs font-semibold'>Actualizando...</Text>
-            </View>
-          )}
+      {/* HEADER SECTION */}
+      <View className='pb-6'>
+        <View className='items-center pt-6 pb-4'>
+          {/* Team Logo */}
+          <Avatar
+            uri={team.logo_url}
+            fallback='shield'
+            editable={canEdit}
+            loading={uploading}
+            onEdit={handleEditShield}
+          />
         </View>
 
-        {/* Nombre y Botón de Edición */}
+        {/* Team Name */}
         <View className='flex-row items-center justify-center gap-2 mb-2 px-6'>
-          <Text className='text-white font-title text-3xl text-center' numberOfLines={1}>
+          <Text className='text-white font-title text-3xl text-center' numberOfLines={2}>
             {team.name}
           </Text>
           {canEdit && (
             <TouchableOpacity
               onPress={() => setShowEditTeamModal(true)}
-              className='bg-gray-800 p-2 rounded-full border border-gray-700'
+              className='bg-gray-800 p-2 ml-2 mt-1 rounded-full border border-gray-700'
             >
-              <Pencil size={14} color='#39FF14' />
+              <Pencil size={12} color='#39FF14' />
             </TouchableOpacity>
           )}
         </View>
 
-        <View className='flex-row items-center justify-center gap-2 mb-4'>
+        {/* Team Info: Location + Category */}
+        <View className='flex-row items-center justify-center gap-2 mb-4 px-4'>
           <View className='flex-row items-center gap-1'>
             <MapPin size={14} color='#9CA3AF' strokeWidth={2} />
             <Text className='text-gray-400 text-sm'>{team.home_zone}</Text>
@@ -347,13 +336,17 @@ export default function ManageTeamScreen() {
                 : 'Mixto'}
           </Text>
         </View>
+
+        {/* ELO Rating */}
         <View className='items-center mb-4'>
           <Text className='text-gray-500 text-xs uppercase font-semibold tracking-wide mb-1'>
             Rating ELO
           </Text>
           <Text className='text-primary font-title text-4xl font-bold'>{team.elo_rating}</Text>
         </View>
-        <View className='items-center pb-6'>
+
+        {/* Share Code */}
+        <View className='items-center px-4'>
           <TouchableOpacity
             onPress={copyCode}
             activeOpacity={0.7}
@@ -368,10 +361,11 @@ export default function ManageTeamScreen() {
         </View>
       </View>
 
-      <View className='p-5 pb-24'>
-        {/* SOLICITUDES (Visible para ADMIN y SUB_ADMIN) */}
+      {/* CONTENT SECTION */}
+      <View className='p-5 pb-24 gap-6'>
+        {/* PENDING REQUESTS */}
         {canEdit && pendingMembers.length > 0 && (
-          <View className='mb-6'>
+          <View>
             <View className='flex-row items-center justify-between mb-3'>
               <Text className='text-white font-title text-lg'>Solicitudes Pendientes</Text>
               <View className='bg-yellow-500/20 px-2.5 py-1 rounded-full border border-yellow-500/30'>
@@ -379,57 +373,23 @@ export default function ManageTeamScreen() {
               </View>
             </View>
             <View className='gap-3'>
-              {pendingMembers.map((m) => (
-                <Card
+              {pendingMembers.map((m: TeamMemberDetail) => (
+                <PendingRequestCard
                   key={m.user_id}
-                  className='flex-row items-center justify-between p-3.5 border-yellow-500/20 bg-yellow-500/5'
-                >
-                  {/* ... Render de Solicitud (Igual que antes) ... */}
-                  <View className='flex-row items-center gap-3 flex-1 min-w-0'>
-                    <View className='w-12 h-12 bg-gray-700 rounded-xl items-center justify-center overflow-hidden border border-gray-600 flex-shrink-0'>
-                      {m.profile.avatar_url ? (
-                        <Image
-                          source={{ uri: m.profile.avatar_url }}
-                          className='w-full h-full'
-                          resizeMode='cover'
-                        />
-                      ) : (
-                        <Text className='text-white font-title text-lg'>
-                          {m.profile.full_name?.[0]?.toUpperCase()}
-                        </Text>
-                      )}
-                    </View>
-                    <View className='flex-1 min-w-0'>
-                      <Text className='text-white font-semibold text-base' numberOfLines={1}>
-                        {m.profile.full_name}
-                      </Text>
-                      <Text className='text-gray-400 text-xs' numberOfLines={1}>
-                        @{m.profile.username}
-                      </Text>
-                    </View>
-                  </View>
-                  <View className='flex-row gap-2 flex-shrink-0 ml-2'>
-                    <TouchableOpacity
-                      onPress={() => handleRequest(m.user_id, true)}
-                      className='bg-green-500/20 w-11 h-11 rounded-xl border border-green-500/40 items-center justify-center active:bg-green-500/30'
-                    >
-                      <Check size={20} color='#4ade80' strokeWidth={2.5} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleRequest(m.user_id, false)}
-                      className='bg-red-500/20 w-11 h-11 rounded-xl border border-red-500/40 items-center justify-center active:bg-red-500/30'
-                    >
-                      <X size={20} color='#f87171' strokeWidth={2.5} />
-                    </TouchableOpacity>
-                  </View>
-                </Card>
+                  userId={m.user_id}
+                  fullName={m.profile.full_name}
+                  username={m.profile.username}
+                  avatarUrl={m.profile.avatar_url || undefined}
+                  onAccept={() => handleRequest(m.user_id, true)}
+                  onReject={() => handleRequest(m.user_id, false)}
+                />
               ))}
             </View>
           </View>
         )}
 
-        {/* PLANTEL ACTIVO */}
-        <View className='mb-6'>
+        {/* ACTIVE MEMBERS */}
+        <View>
           <View className='flex-row items-center gap-2 mb-3'>
             <Users size={20} color='#39FF14' strokeWidth={2.5} />
             <Text className='text-white font-title text-lg'>Plantel</Text>
@@ -439,67 +399,23 @@ export default function ManageTeamScreen() {
           </View>
 
           <View className='gap-3'>
-            {activeMembers.map((member) => (
-              <TouchableOpacity
+            {activeMembers.map((member: TeamMemberDetail) => (
+              <TeamMemberCard
                 key={member.user_id}
-                activeOpacity={isCaptain && member.user_id !== currentUser ? 0.7 : 1}
+                userId={member.user_id}
+                fullName={member.profile.full_name}
+                username={member.profile.username}
+                avatarUrl={member.profile.avatar_url || undefined}
+                role={member.role as UserRole}
+                isCurrentUser={member.user_id === currentUser}
+                canManage={isCaptain}
                 onPress={() => openMemberOptions(member)}
-              >
-                <Card className='flex-row items-center p-3.5'>
-                  <View className='w-12 h-12 bg-gray-700 rounded-xl overflow-hidden items-center justify-center border border-gray-600 mr-3 flex-shrink-0'>
-                    {member.profile.avatar_url ? (
-                      <Image
-                        source={{ uri: member.profile.avatar_url }}
-                        className='w-full h-full'
-                        resizeMode='cover'
-                      />
-                    ) : (
-                      <Text className='text-white font-title text-lg'>
-                        {member.profile.full_name?.[0]?.toUpperCase() || '?'}
-                      </Text>
-                    )}
-                  </View>
-                  <View className='flex-1 min-w-0'>
-                    <Text className='text-white font-semibold text-base' numberOfLines={1}>
-                      {member.profile.full_name}
-                    </Text>
-                    <Text className='text-gray-500 text-xs' numberOfLines={1}>
-                      @{member.profile.username}
-                    </Text>
-                  </View>
-
-                  {/* BADGES */}
-                  {member.role === UserRole.ADMIN && (
-                    <View className='flex-row items-center gap-1 bg-yellow-500/20 px-2.5 py-1 rounded-lg border border-yellow-500/40 ml-2'>
-                      <Crown size={12} color='#EAB308' strokeWidth={2.5} />
-                      <Text className='text-yellow-500 text-[10px] font-bold uppercase'>
-                        Capitán
-                      </Text>
-                    </View>
-                  )}
-                  {member.role === UserRole.SUB_ADMIN && (
-                    <View className='flex-row items-center gap-1 bg-blue-500/20 px-2.5 py-1 rounded-lg border border-blue-500/40 ml-2'>
-                      <Shield size={12} color='#3b82f6' strokeWidth={2.5} />
-                      <Text className='text-blue-500 text-[10px] font-bold uppercase'>Sub-Cap</Text>
-                    </View>
-                  )}
-                  {member.role === UserRole.PLAYER && (
-                    <View className='flex-row items-center gap-1 bg-gray-700/30 px-2.5 py-1 rounded-lg border border-gray-600/50 ml-2'>
-                      <Text className='text-gray-400 text-[10px] font-bold uppercase'>Jugador</Text>
-                    </View>
-                  )}
-
-                  {isCaptain && member.user_id !== currentUser && (
-                    <View className='ml-auto pl-2'>
-                      <MoreVertical size={20} color='#6B7280' />
-                    </View>
-                  )}
-                </Card>
-              </TouchableOpacity>
+              />
             ))}
           </View>
         </View>
 
+        {/* LEAVE TEAM BUTTON */}
         <Button
           title='Abandonar Equipo'
           variant='danger'
@@ -509,6 +425,7 @@ export default function ManageTeamScreen() {
         />
       </View>
 
+      {/* MODALS */}
       <ConfirmationModal
         visible={showLeaveModal}
         title='¿Abandonar Equipo?'
@@ -520,18 +437,19 @@ export default function ManageTeamScreen() {
         onCancel={() => setShowLeaveModal(false)}
       />
 
-      <MemberActionModal
-        visible={showMemberModal}
-        memberName={selectedMember?.profile.full_name || 'Jugador'}
-        currentRole={(selectedMember?.role as UserRole) ?? UserRole.PLAYER}
-        onMakeCaptain={handleMakeCaptain}
-        onMakeSubCaptain={handleMakeSubCaptain}
-        onDemoteToPlayer={handleDemoteToPlayer}
-        onKick={handleKickMember}
-        onCancel={() => setShowMemberModal(false)}
-      />
+      {selectedMember && (
+        <MemberActionModal
+          visible={showMemberModal}
+          memberName={selectedMember.profile.full_name}
+          currentRole={selectedMember.role as UserRole}
+          onMakeCaptain={handleMakeCaptain}
+          onMakeSubCaptain={handleMakeSubCaptain}
+          onDemoteToPlayer={handleDemoteToPlayer}
+          onKick={handleKickMember}
+          onCancel={() => setShowMemberModal(false)}
+        />
+      )}
 
-      {/* NUEVO MODAL DE EDICIÓN DE EQUIPO */}
       {team && (
         <EditTeamModal
           visible={showEditTeamModal}

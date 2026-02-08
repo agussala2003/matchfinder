@@ -119,7 +119,7 @@ export default function OnboardingScreen() {
           </View>
         </View>
 
-        <Text className='text-gray-600 text-center text-xs mt-8 font-body'>
+        <Text className='text-text-muted text-center text-xs mt-8 font-body'>
           Al completar tu registro aceptas nuestras Reglas de Juego y Política de Fair Play.
         </Text>
       </View>

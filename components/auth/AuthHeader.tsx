@@ -15,16 +15,18 @@ export function AuthHeader({ title, subtitle, showLogo = true }: AuthHeaderProps
           <Text className='text-primary font-title text-6xl tracking-tighter shadow-lg shadow-primary/50'>
             MATCH
           </Text>
-          <Text className='text-white font-title text-6xl tracking-tighter -mt-4'>FINDER</Text>
+          <Text className='text-text-main font-title text-6xl tracking-tighter -mt-4'>FINDER</Text>
         </View>
       )}
 
       {title && (
-        <Text className='text-white font-title text-3xl mb-2 text-center uppercase'>{title}</Text>
+        <Text className='text-text-main font-title text-3xl mb-2 text-center uppercase'>
+          {title}
+        </Text>
       )}
 
       {subtitle && (
-        <Text className='text-gray-400 font-body text-sm tracking-widest uppercase text-center px-4'>
+        <Text className='text-text-muted font-body text-sm tracking-widest uppercase text-center px-4'>
           {subtitle}
         </Text>
       )}

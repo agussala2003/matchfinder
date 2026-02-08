@@ -26,11 +26,11 @@ export function Button({
   ...props
 }: ButtonProps) {
   const styles = {
-    primary: { container: 'bg-primary border-transparent', text: 'text-black font-title' },
-    secondary: { container: 'bg-gray-800 border-gray-700', text: 'text-white font-title' },
-    outline: { container: 'bg-transparent border-primary', text: 'text-primary font-title' },
-    ghost: { container: 'bg-transparent border-transparent', text: 'text-gray-400 font-body' },
-    danger: { container: 'bg-red-900/20 border-red-900/50', text: 'text-red-500 font-title' },
+    primary: { container: 'bg-primary border-transparent', text: 'text-background font-title' },
+    secondary: { container: 'bg-modal border-border', text: 'text-text-main font-title' },
+    outline: { container: 'bg-transparent border-border', text: 'text-text-main font-title' },
+    ghost: { container: 'bg-transparent border-transparent', text: 'text-text-muted font-body' },
+    danger: { container: 'bg-error/20 border-error/50', text: 'text-error font-title' },
   }
 
   const currentStyle = styles[variant]

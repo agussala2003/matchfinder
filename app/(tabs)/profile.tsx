@@ -121,14 +121,14 @@ export default function ProfileScreen() {
       <View className='w-11/12 mx-auto gap-10'>
         {/* ESTADÍSTICAS */}
         <View className='gap-4'>
-          <Text className='text-white font-title text-lg'>Estadísticas</Text>
+          <Text className='text-text-main font-title text-lg'>Estadísticas</Text>
           <StatsGrid />
         </View>
 
         {/* MIS EQUIPOS */}
         <View className='gap-6'>
           <View className='flex-row items-center justify-between'>
-            <Text className='text-white font-title text-lg'>Mis Equipos</Text>
+            <Text className='text-text-main font-title text-lg'>Mis Equipos</Text>
 
             {teams.length > 0 && (
               <TouchableOpacity onPress={() => router.push('/create-team')}>
@@ -148,38 +148,38 @@ export default function ProfileScreen() {
           {teams.length > 0 && (
             <TouchableOpacity
               onPress={() => router.push('/join-team')}
-              className='flex-row items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-gray-700 active:bg-gray-800'
+              className='flex-row items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-border active:bg-card'
             >
-              <Plus size={16} color='#666' />
-              <Text className='text-gray-400 font-body'>Unirse a otro equipo con código</Text>
+              <Plus size={16} color='#9CA3AF' />
+              <Text className='text-text-muted font-body'>Unirse a otro equipo con código</Text>
             </TouchableOpacity>
           )}
 
           {myRequests.length > 0 && (
             <View className='gap-3'>
-              <Text className='text-white font-title text-lg'>Solicitudes Enviadas</Text>
+              <Text className='text-text-main font-title text-lg'>Solicitudes Enviadas</Text>
 
               <View className='gap-2'>
                 {myRequests.map((req) => (
                   <View
                     key={req.team_id}
-                    className='bg-card border border-gray-800 p-3 rounded-xl flex-row items-center justify-between'
+                    className='bg-card border border-border p-3 rounded-xl flex-row items-center justify-between'
                   >
                     <View className='flex-row items-center gap-3'>
-                      <View className='w-8 h-8 bg-gray-700 rounded-full items-center justify-center border border-gray-600 overflow-hidden'>
+                      <View className='w-8 h-8 bg-modal rounded-full items-center justify-center border border-border overflow-hidden'>
                         {req.team.logo_url ? (
                           <Image source={{ uri: req.team.logo_url }} className='w-full h-full' />
                         ) : (
-                          <Shield size={14} color='#666' />
+                          <Shield size={14} color='#9CA3AF' />
                         )}
                       </View>
 
-                      <Text className='text-white font-body text-sm'>{req.team.name}</Text>
+                      <Text className='text-text-main font-body text-sm'>{req.team.name}</Text>
                     </View>
 
-                    <View className='bg-yellow-500/20 px-2 py-1 rounded border border-yellow-500/50 flex-row items-center gap-1'>
+                    <View className='bg-warning/20 px-2 py-1 rounded border border-warning/50 flex-row items-center gap-1'>
                       <Clock size={10} color='#EAB308' />
-                      <Text className='text-yellow-500 text-[10px] uppercase font-bold'>
+                      <Text className='text-warning text-[10px] uppercase font-bold'>
                         Pendiente
                       </Text>
                     </View>
@@ -192,9 +192,9 @@ export default function ProfileScreen() {
 
         {/* CONFIGURACIÓN */}
         <View className='gap-6'>
-          <Text className='text-white font-title text-lg'>Configuración</Text>
+          <Text className='text-text-main font-title text-lg'>Configuración</Text>
 
-          <View className='bg-card rounded-2xl border border-gray-800 overflow-hidden'>
+          <View className='bg-card rounded-2xl border border-border overflow-hidden'>
             <MenuOption
               icon={<UserCog size={22} color='#39FF14' />}
               label='Editar Datos Personales'
@@ -202,12 +202,12 @@ export default function ProfileScreen() {
               isLast={false}
             />
             <MenuOption
-              icon={<Shield size={22} color='white' />}
+              icon={<Shield size={22} color='#F9FAFB' />}
               label='Seguridad y Privacidad'
               isLast={false}
             />
             <MenuOption
-              icon={<Settings size={22} color='white' />}
+              icon={<Settings size={22} color='#F9FAFB' />}
               label='Preferencias de la App'
               isLast={true}
             />
@@ -221,7 +221,7 @@ export default function ProfileScreen() {
           />
         </View>
 
-        <Text className='text-center text-gray-700 text-xs'>MatchFinder v1.0.4</Text>
+        <Text className='text-center text-text-muted text-xs'>MatchFinder v1.0.4</Text>
       </View>
     </ScreenLayout>
   )
@@ -230,10 +230,10 @@ export default function ProfileScreen() {
 const MenuOption = ({ icon, label, onPress, isLast }: any) => (
   <TouchableOpacity
     onPress={onPress}
-    className={`flex-row items-center p-5 active:bg-gray-800 ${!isLast ? 'border-b border-gray-800' : ''}`}
+    className={`flex-row items-center p-5 active:bg-modal ${!isLast ? 'border-b border-border' : ''}`}
   >
     <View className='mr-4 opacity-90'>{icon}</View>
-    <Text className='text-gray-200 font-body text-base flex-1'>{label}</Text>
-    <ChevronRight size={18} color='#4b5563' />
+    <Text className='text-text-main font-body text-base flex-1'>{label}</Text>
+    <ChevronRight size={18} color='#9CA3AF' />
   </TouchableOpacity>
 )

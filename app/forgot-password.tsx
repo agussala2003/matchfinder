@@ -69,7 +69,7 @@ export default function ForgotPasswordScreen() {
           <Button title='Volver al Login' variant='ghost' onPress={() => router.back()} />
         </View>
 
-        <Text className='text-gray-600 text-center text-xs mt-8 px-4 font-body'>
+        <Text className='text-text-muted text-center text-xs mt-8 px-4 font-body'>
           Si no recibes el email en unos minutos, revisa tu carpeta de spam.
         </Text>
       </ScreenLayout>

@@ -57,20 +57,22 @@ export default function JoinTeamScreen() {
       />
 
       <View className='flex-1 justify-start items-center pt-8'>
-        <View className='bg-gray-800 p-6 rounded-full mb-6 border border-gray-700 shadow-lg shadow-black'>
+        <View className='bg-card p-6 rounded-full mb-6 border border-border shadow-lg shadow-black'>
           <Users size={40} color='#39FF14' />
         </View>
 
-        <Text className='text-white font-title text-2xl mb-2 text-center'>INGRESA EL CÓDIGO</Text>
-        <Text className='text-gray-400 font-body text-center mb-6 px-4'>
+        <Text className='text-text-main font-title text-2xl mb-2 text-center'>
+          INGRESA EL CÓDIGO
+        </Text>
+        <Text className='text-text-muted font-body text-center mb-6 px-4'>
           Pídele el código al capitán de tu equipo para enviar tu solicitud de ingreso.
         </Text>
 
         <View className='w-full gap-6'>
           <TextInput
-            className='bg-card text-white p-4 rounded-xl border border-gray-700 font-mono text-center text-3xl tracking-[10px] uppercase h-[80px] focus:border-primary'
+            className='bg-card text-text-main p-4 rounded-xl border border-border font-mono text-center text-3xl tracking-[10px] uppercase h-[80px] focus:border-primary'
             placeholder='A1B2C3'
-            placeholderTextColor='#333'
+            placeholderTextColor='#9CA3AF'
             value={code}
             onChangeText={setCode}
             maxLength={6}

@@ -90,10 +90,10 @@ export default function CreateTeamScreen() {
 
       <View className='flex-1 py-8'>
         <View className='items-center mb-8'>
-          <View className='w-24 h-24 bg-gray-800 rounded-full items-center justify-center border-2 border-dashed border-gray-600 mb-4'>
-            <Shield size={40} color='#666' />
+          <View className='w-24 h-24 bg-card rounded-full items-center justify-center border-2 border-dashed border-border mb-4'>
+            <Shield size={40} color='#9CA3AF' />
           </View>
-          <Text className='text-gray-400 font-body text-xs text-center'>
+          <Text className='text-text-muted font-body text-xs text-center'>
             El escudo se podrá subir más adelante
           </Text>
         </View>

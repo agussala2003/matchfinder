@@ -96,7 +96,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/forgot-password')}
             className='self-end py-2'
           >
-            <Text className='text-gray-400 font-body text-sm'>¿Olvidaste tu contraseña?</Text>
+            <Text className='text-text-muted font-body text-sm'>¿Olvidaste tu contraseña?</Text>
           </TouchableOpacity>
 
           <View className='gap-3 mt-2'>

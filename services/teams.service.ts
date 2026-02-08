@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { supabase } from '@/lib/supabase'
 import { UserProfile } from '@/types/auth'
 import { ServiceResponse, TeamMemberStatus, UserRole } from '@/types/core'
@@ -47,7 +48,7 @@ class TeamsService {
           home_zone: validatedData.homeZone,
           category: validatedData.category,
           captain_id: validatedData.captainId,
-          elo_rating: 1200,
+          elo_rating: CONFIG.defaults.eloRating,
         })
         .select()
         .single()

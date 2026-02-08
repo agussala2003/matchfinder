@@ -34,14 +34,14 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
   // --- ESTADO: SIN EQUIPO ---
   if (!team) {
     return (
-      <Card className='border-dashed border-gray-600 bg-transparent p-6'>
+      <Card className='border-dashed border-gray-700 bg-transparent p-6'>
         <View className='flex-row items-center gap-4 mb-6'>
           <View className='w-14 h-14 bg-gray-800 rounded-full items-center justify-center border border-gray-700'>
-            <Shield size={26} color='#666' />
+            <Shield size={26} color='#9CA3AF' strokeWidth={2} />
           </View>
           <View className='flex-1'>
-            <Text className='text-gray-300 font-title text-lg mb-1'>Crea tu Equipo</Text>
-            <Text className='text-gray-500 text-sm'>Funda un club o únete a tus amigos</Text>
+            <Text className='text-white font-title text-lg mb-1'>Crea tu Equipo</Text>
+            <Text className='text-gray-400 text-sm'>Funda un club o únete a tus amigos</Text>
           </View>
         </View>
 
@@ -87,9 +87,9 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
               )}
             </View>
 
-            {/* Info del equipo - Con min-w-0 para que respete el truncate */}
+            {/* Info del equipo */}
             <View className='flex-1 gap-1 min-w-0'>
-              {/* Nombre - Truncado con ellipsis */}
+              {/* Nombre */}
               <Text
                 className='text-white font-title text-lg'
                 numberOfLines={1}
@@ -98,7 +98,7 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
                 {team.name}
               </Text>
 
-              {/* Ubicación y categoría - También truncado si es muy largo */}
+              {/* Ubicación y categoría */}
               <View className='flex-row items-center gap-1 min-w-0'>
                 <MapPin size={11} color='#6B7280' strokeWidth={2} className='flex-shrink-0' />
                 <Text
@@ -107,11 +107,7 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
                   ellipsizeMode='tail'
                 >
                   {team.home_zone} •{' '}
-                  {team.category === 'MALE'
-                    ? 'Masculino'
-                    : team.category === 'FEMALE'
-                      ? 'Femenino'
-                      : 'Mixto'}
+                  {team.category === 'MALE' ? 'Masc' : team.category === 'FEMALE' ? 'Fem' : 'Mixto'}
                 </Text>
               </View>
 

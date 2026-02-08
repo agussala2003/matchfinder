@@ -104,16 +104,15 @@ export default function EditProfileScreen() {
   return (
     <ScreenLayout scrollable withPadding loading={loading}>
       <Stack.Screen
-          options={{
-            title: 'Editar Perfil',
-            headerShown: true,
-            headerStyle: { backgroundColor: '#121212' },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
-          }}
-        />
+        options={{
+          title: 'Editar Perfil',
+          headerShown: true,
+          headerStyle: { backgroundColor: '#121212' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
+        }}
+      />
       <View className='flex-1 justify-center py-8'>
-
         <View className='gap-5'>
           <AuthInput
             label='Nombre Completo'
@@ -138,9 +137,9 @@ export default function EditProfileScreen() {
           />
 
           <View className='gap-3 mt-4'>
-            <Button 
-              title='Guardar Cambios' 
-              onPress={handleSave} 
+            <Button
+              title='Guardar Cambios'
+              onPress={handleSave}
               loading={saving}
               icon={<Save size={20} color='#000' strokeWidth={2.5} />}
               disabled={saving}

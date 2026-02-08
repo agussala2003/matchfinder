@@ -34,17 +34,17 @@ export function Select({
   return (
     <View>
       {/* Label superior */}
-      <Text className='text-gray-400 font-title mb-2 uppercase text-xs'>{label}</Text>
+      <Text className='text-gray-400 font-title mb-2 uppercase text-xs pl-1'>{label}</Text>
 
       {/* Campo Trigger */}
       <TouchableOpacity
         onPress={() => !disabled && setVisible(true)}
         activeOpacity={disabled ? 1 : 0.7}
-        className={`bg-card p-4 h-[60px] rounded-xl border flex-row items-center justify-between ${
-          error ? 'border-red-500' : 'border-gray-800'
+        className={`bg-gray-800 p-4 h-[60px] rounded-xl border flex-row items-center justify-between ${
+          error ? 'border-red-500' : 'border-gray-700'
         } ${disabled ? 'opacity-50' : 'active:border-primary'}`}
       >
-        <Text className={`text-lg font-body ${selectedOption ? 'text-white' : 'text-gray-500'}`}>
+        <Text className={`text-base font-body ${selectedOption ? 'text-white' : 'text-gray-500'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </Text>
         <ChevronDown size={20} color={disabled ? '#444' : '#666'} />
@@ -61,12 +61,12 @@ export function Select({
         onRequestClose={() => setVisible(false)}
       >
         <View className='flex-1 bg-black/80 justify-end'>
-          <View className='bg-card rounded-t-3xl max-h-[70%] pb-8'>
+          <View className='bg-gray-900 rounded-t-3xl max-h-[70%] pb-8 border-t border-gray-800'>
             {/* Header del Modal */}
             <View className='p-4 border-b border-gray-800 flex-row justify-between items-center'>
-              <Text className='text-white font-title text-xl'>{label}</Text>
+              <Text className='text-white font-title text-xl ml-2'>{label}</Text>
               <TouchableOpacity onPress={() => setVisible(false)} className='p-2'>
-                <X size={24} color='white' />
+                <X size={24} color='#9CA3AF' />
               </TouchableOpacity>
             </View>
 
@@ -81,17 +81,21 @@ export function Select({
                     onChange(item.value)
                     setVisible(false)
                   }}
-                  className='p-4 border-b border-gray-800 active:bg-gray-800 rounded-lg flex-row justify-between items-center'
+                  className={`p-4 border-b border-gray-800 rounded-lg flex-row justify-between items-center mb-2 ${
+                    item.value === value ? 'bg-gray-800' : 'active:bg-gray-800'
+                  }`}
                 >
                   <View>
                     <Text
-                      className={`text-lg font-body ${item.value === value ? 'text-primary' : 'text-white'}`}
+                      className={`text-lg font-body ${
+                        item.value === value ? 'text-primary' : 'text-white'
+                      }`}
                     >
                       {item.label}
                     </Text>
-                    {/* Opcional: Mostrar el value (código) en pequeño si es diferente al label */}
+                    {/* Mostrar código si es diferente al label */}
                     {item.value !== item.label && (
-                      <Text className='text-gray-500 text-xs font-title uppercase'>
+                      <Text className='text-gray-500 text-xs font-title uppercase mt-1'>
                         {item.value}
                       </Text>
                     )}

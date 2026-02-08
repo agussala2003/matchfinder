@@ -6,7 +6,7 @@ import { ZodError } from 'zod'
 
 export interface TeamMemberDetail {
   user_id: string
-  role: 'ADMIN'  | 'SUB_ADMIN' | 'PLAYER'
+  role: 'ADMIN' | 'SUB_ADMIN' | 'PLAYER'
   status: TeamMemberStatus
   profile: UserProfile
 }
@@ -234,34 +234,38 @@ class TeamsService {
     }
   }
 
-  async updateMemberRole(teamId: string, userId: string, newRole: UserRole): Promise<ServiceResponse> {
+  async updateMemberRole(
+    teamId: string,
+    userId: string,
+    newRole: UserRole,
+  ): Promise<ServiceResponse> {
     try {
       const { error } = await supabase
         .from('team_members')
         .update({ role: newRole })
         .eq('team_id', teamId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
 
-      if (error) throw error;
-      return { success: true };
+      if (error) throw error
+      return { success: true }
     } catch (error) {
-      return { success: false, error: this.handleError(error) };
+      return { success: false, error: this.handleError(error) }
     }
   }
 
   // --- NUEVO: TRASPASO ATÓMICO DE CAPITANÍA ---
   async transferCaptaincy(teamId: string, newCaptainId: string): Promise<ServiceResponse> {
-      try {
-          const { error } = await supabase.rpc('transfer_team_captain', { 
-              team_id: teamId, 
-              new_captain_id: newCaptainId 
-          });
+    try {
+      const { error } = await supabase.rpc('transfer_team_captain', {
+        team_id: teamId,
+        new_captain_id: newCaptainId,
+      })
 
-          if (error) throw error;
-          return { success: true };
-      } catch (error) {
-          return { success: false, error: this.handleError(error) };
-      }
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: this.handleError(error) }
+    }
   }
 }
 

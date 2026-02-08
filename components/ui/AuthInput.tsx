@@ -19,10 +19,13 @@ export function AuthInput({
 }: AuthInputProps) {
   return (
     <View>
-      <Text className='text-gray-400 font-title mb-2 uppercase text-xs'>{label}</Text>
+      <Text className='text-gray-400 font-title mb-2 uppercase text-xs pl-1'>{label}</Text>
+      
       <TextInput
-        className={`bg-card text-white p-4 h-[60px] text-lg rounded-xl border font-body ${
-          error ? 'border-red-500' : 'border-gray-800 focus:border-primary'
+        className={`bg-gray-800 text-white p-4 h-[60px] text-base rounded-xl border font-body ${
+          error 
+            ? 'border-red-500' 
+            : 'border-gray-700 focus:border-primary'
         }`}
         placeholder={placeholder}
         placeholderTextColor='#666'
@@ -33,6 +36,7 @@ export function AuthInput({
         keyboardType={keyboardType}
         {...rest}
       />
+      
       {error && <Text className='text-red-500 font-body text-xs mt-1 ml-1'>{error}</Text>}
     </View>
   )

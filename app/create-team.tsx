@@ -83,7 +83,7 @@ export default function CreateTeamScreen() {
           headerShown: true,
           headerStyle: { backgroundColor: '#121217' },
           headerTintColor: '#fff',
-          headerTitleStyle: { fontFamily: 'Inter_700Bold' }
+          headerTitleStyle: { fontFamily: 'Inter_700Bold' },
         }}
       />
 

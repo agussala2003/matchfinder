@@ -114,7 +114,8 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
                   numberOfLines={1}
                   ellipsizeMode='tail'
                 >
-                  {team.home_zone} · {team.category === 'MALE' ? 'Masc' : team.category === 'FEMALE' ? 'Fem' : 'Mixto'}
+                  {team.home_zone} ·{' '}
+                  {team.category === 'MALE' ? 'Masc' : team.category === 'FEMALE' ? 'Fem' : 'Mixto'}
                 </Text>
               </View>
 

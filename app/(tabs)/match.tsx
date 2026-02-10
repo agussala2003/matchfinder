@@ -4,6 +4,7 @@ import { Select } from '@/components/ui/Select'
 import { authService } from '@/services/auth.service'
 import { matchesService, MatchPreview } from '@/services/matches.service'
 import { teamsService } from '@/services/teams.service'
+import { UserRole } from '@/types/core'
 import { Team } from '@/types/teams'
 import { router, useFocusEffect } from 'expo-router'
 import {
@@ -34,8 +35,9 @@ export default function MatchScreen() {
   const [matches, setMatches] = useState<MatchPreview[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [canManage, setCanManage] = useState(false) // Nuevo estado de permiso
 
-  // Filtros mejorados
+  // Filtros
   const pendingMatches = matches.filter((m) => m.status === 'PENDING')
   const confirmedMatches = matches.filter((m) => m.status === 'CONFIRMED')
   const liveMatches = matches.filter((m) => m.status === 'LIVE')
@@ -44,12 +46,14 @@ export default function MatchScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData()
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   )
 
   React.useEffect(() => {
-    if (currentTeam) fetchMatches(currentTeam.id)
+    if (currentTeam) {
+        fetchMatches(currentTeam.id)
+        checkPermissions(currentTeam.id) // Validar permisos al cambiar de equipo
+    }
   }, [currentTeam])
 
   async function loadData() {
@@ -65,7 +69,10 @@ export default function MatchScreen() {
         setMyTeams(teamsRes.data)
         if (!currentTeam) {
           setCurrentTeam(teamsRes.data[0])
+          await checkPermissions(teamsRes.data[0].id, userId)
         } else {
+          // Refrescar permisos del equipo actual por si cambió algo
+          await checkPermissions(currentTeam.id, userId)
           fetchMatches(currentTeam.id)
         }
       }
@@ -75,6 +82,21 @@ export default function MatchScreen() {
       setLoading(false)
       setRefreshing(false)
     }
+  }
+
+  async function checkPermissions(teamId: string, userId?: string) {
+    if(!userId) {
+        const session = await authService.getSession()
+        userId = session.data?.user?.id
+    }
+    if(!userId) return
+
+    const membersRes = await teamsService.getTeamMembers(teamId)
+    const me = membersRes.data?.find((m) => m.user_id === userId)
+    
+    // Solo ADMIN y SUB_ADMIN pueden gestionar partidos
+    const hasPermission = me?.role === UserRole.ADMIN || me?.role === UserRole.SUB_ADMIN
+    setCanManage(hasPermission)
   }
 
   async function fetchMatches(teamId: string) {
@@ -156,7 +178,12 @@ export default function MatchScreen() {
                   </View>
                   <View className='gap-3'>
                     {liveMatches.map((match) => (
-                      <MatchCard key={match.id} match={match} myTeamId={currentTeam.id} />
+                      <MatchCard 
+                        key={match.id} 
+                        match={match} 
+                        myTeamId={currentTeam.id} 
+                        canManage={canManage} // Pasamos el permiso
+                      />
                     ))}
                   </View>
                 </View>
@@ -179,7 +206,12 @@ export default function MatchScreen() {
                 {pendingMatches.length > 0 ? (
                   <View className='gap-3'>
                     {pendingMatches.map((match) => (
-                      <MatchCard key={match.id} match={match} myTeamId={currentTeam.id} />
+                      <MatchCard 
+                        key={match.id} 
+                        match={match} 
+                        myTeamId={currentTeam.id}
+                        canManage={canManage}
+                      />
                     ))}
                   </View>
                 ) : (
@@ -208,7 +240,12 @@ export default function MatchScreen() {
                 {confirmedMatches.length > 0 ? (
                   <View className='gap-3'>
                     {confirmedMatches.map((match) => (
-                      <MatchCard key={match.id} match={match} myTeamId={currentTeam.id} />
+                      <MatchCard 
+                        key={match.id} 
+                        match={match} 
+                        myTeamId={currentTeam.id}
+                        canManage={canManage}
+                      />
                     ))}
                   </View>
                 ) : (
@@ -234,7 +271,12 @@ export default function MatchScreen() {
                   </View>
                   <View className='gap-3'>
                     {finishedMatches.map((match) => (
-                      <MatchCard key={match.id} match={match} myTeamId={currentTeam.id} />
+                      <MatchCard 
+                        key={match.id} 
+                        match={match} 
+                        myTeamId={currentTeam.id}
+                        canManage={canManage}
+                      />
                     ))}
                   </View>
                 </View>
@@ -268,8 +310,16 @@ function EmptyState({
   )
 }
 
-// Match Card Component
-function MatchCard({ match, myTeamId }: { match: MatchPreview; myTeamId: string }) {
+// Match Card Component (Actualizado con canManage)
+function MatchCard({ 
+    match, 
+    myTeamId, 
+    canManage 
+}: { 
+    match: MatchPreview; 
+    myTeamId: string;
+    canManage: boolean;
+}) {
   const isPending = match.status === 'PENDING'
   const isLive = match.status === 'LIVE'
   const isFinished = match.status === 'FINISHED'
@@ -296,10 +346,16 @@ function MatchCard({ match, myTeamId }: { match: MatchPreview; myTeamId: string 
     return null
   }
 
+  // Navegación: Solo si puede gestionar O ver detalles (podríamos permitir ver detalles a todos pero solo editar a capitanes)
+  // Por ahora, permitimos entrar a todos para ver el chat, pero dentro del chat bloquearemos acciones si es necesario.
+  const handlePress = () => {
+      router.push(`/match/${match.id}` as any)
+  }
+
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      onPress={() => router.push(`/match/${match.id}` as any)}
+      onPress={handlePress}
       className={`rounded-xl border overflow-hidden ${
         isLive
           ? 'bg-card border-red-500/50'
@@ -308,7 +364,7 @@ function MatchCard({ match, myTeamId }: { match: MatchPreview; myTeamId: string 
             : 'bg-card border-border'
       }`}
     >
-      {/* Barra superior */}
+      {/* Barra superior (Solo si es Pending o Live) */}
       {(isPending || isLive) && (
         <View
           className={`px-4 py-2 border-b flex-row items-center justify-between ${
@@ -414,11 +470,11 @@ function MatchCard({ match, myTeamId }: { match: MatchPreview; myTeamId: string 
           <ChevronRight size={20} color='#6B7280' strokeWidth={2.5} className='flex-shrink-0' />
         </View>
 
-        {/* Botón de acción */}
-        {isPending && (
+        {/* Botón de acción: SOLO si es Pending y PUEDE GESTIONAR */}
+        {isPending && canManage && (
           <View className='pt-3 border-t border-border'>
             <TouchableOpacity
-              onPress={() => router.push(`/match/${match.id}` as any)}
+              onPress={handlePress}
               className='bg-primary/10 py-2.5 rounded-lg border border-primary/30 active:bg-primary/20 flex-row items-center justify-center gap-2'
             >
               <Text className='text-primary text-sm font-bold'>Gestionar Partido</Text>
@@ -429,6 +485,13 @@ function MatchCard({ match, myTeamId }: { match: MatchPreview; myTeamId: string 
               )}
             </TouchableOpacity>
           </View>
+        )}
+        
+        {/* Mensaje para jugadores normales */}
+        {isPending && !canManage && (
+            <View className='pt-3 border-t border-border'>
+                <Text className="text-text-muted text-xs text-center italic">Esperando gestión del capitán...</Text>
+            </View>
         )}
       </View>
     </TouchableOpacity>

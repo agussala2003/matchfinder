@@ -139,7 +139,7 @@ export default function ProfileScreen() {
 
           <View className='gap-2'>
             {teams.length > 0 ? (
-              teams.map((item) => <TeamCard key={item.id} team={item} onCreatePress={() => { }} />)
+              teams.map((item) => <TeamCard key={item.id} team={item} onCreatePress={() => {}} />)
             ) : (
               <TeamCard team={null} onCreatePress={() => router.push('/create-team')} />
             )}
@@ -154,7 +154,6 @@ export default function ProfileScreen() {
               <Text className='text-text-muted font-body'>Unirse a otro equipo con código</Text>
             </TouchableOpacity>
           )}
-
         </View>
         {myRequests.length > 0 && (
           <View className='gap-2'>
@@ -180,9 +179,7 @@ export default function ProfileScreen() {
 
                   <View className='bg-warning/20 px-2 py-1 rounded border border-warning/50 flex-row items-center gap-1'>
                     <Clock size={10} color='#EAB308' />
-                    <Text className='text-warning text-[10px] uppercase font-bold'>
-                      Pendiente
-                    </Text>
+                    <Text className='text-warning text-[10px] uppercase font-bold'>Pendiente</Text>
                   </View>
                 </View>
               ))}
@@ -212,14 +209,13 @@ export default function ProfileScreen() {
               isLast={true}
             />
           </View>
-
         </View>
-          <Button
-            title='Cerrar Sesión'
-            variant='danger'
-            onPress={handleLogout}
-            icon={<LogOut size={20} color='#EF4444' />}
-          />
+        <Button
+          title='Cerrar Sesión'
+          variant='danger'
+          onPress={handleLogout}
+          icon={<LogOut size={20} color='#EF4444' />}
+        />
 
         <Text className='text-center text-text-muted text-xs'>MatchFinder v1.0.4</Text>
       </View>

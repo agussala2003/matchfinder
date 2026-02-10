@@ -4,13 +4,7 @@ import { ZONAS_AMBA } from '@/lib/constants'
 import { Team } from '@/types/teams'
 import { X } from 'lucide-react-native'
 import React, { useEffect, useState } from 'react'
-import {
-  Modal,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
-} from 'react-native'
+import { Modal, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native'
 import { AuthInput } from '../ui/AuthInput'
 
 interface EditTeamModalProps {
@@ -57,7 +51,7 @@ export function EditTeamModal({ visible, team, onSave, onCancel }: EditTeamModal
 
               {/* Input: Nombre */}
               <View className='mb-4'>
-                <AuthInput 
+                <AuthInput
                   label='Nombre del Equipo'
                   placeholder='Ej: Los Galácticos FC'
                   value={name}
@@ -87,9 +81,7 @@ export function EditTeamModal({ visible, team, onSave, onCancel }: EditTeamModal
                       key={cat}
                       onPress={() => setCategory(cat)}
                       className={`flex-1 py-3 rounded-xl border items-center justify-center ${
-                        category === cat
-                          ? 'bg-primary/10 border-primary'
-                          : 'bg-card border-border'
+                        category === cat ? 'bg-primary/10 border-primary' : 'bg-card border-border'
                       }`}
                     >
                       <Text

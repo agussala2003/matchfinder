@@ -1,4 +1,4 @@
-import { POSICIONES_LISTA } from '@/lib/constants'; // <--- Importamos la lista oficial
+import { POSICIONES_LISTA } from '@/lib/constants' // <--- Importamos la lista oficial
 import { Session, User } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { ServiceResponse } from './core'
@@ -104,7 +104,12 @@ export const profileDataSchema = z.object({
     })
     .optional()
     .default('ANY'),
-  avatar_url: z.string().url().optional().or(z.null()).transform(val => val || undefined),
+  avatar_url: z
+    .string()
+    .url()
+    .optional()
+    .or(z.null())
+    .transform((val) => val || undefined),
 })
 
 export type ValidatedAuthCredentials = z.infer<typeof authCredentialsSchema>

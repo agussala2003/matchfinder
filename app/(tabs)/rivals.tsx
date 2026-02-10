@@ -97,10 +97,11 @@ export default function RivalsScreen() {
   }
 
   async function fetchRivals(teamId: string, query?: string, zone?: string) {
+    //Actualizar a 5 con casos de prueba mas pronto
     const res = await challengesService.searchRivals(teamId, query, zone)
     if (res.data) {
-        const validRivals = res.data.filter((t: any) => (t.member_count || 0) >= 2)
-        setRivals(validRivals)
+      const validRivals = res.data.filter((t: any) => (t.member_count || 0) >= 2)
+      setRivals(validRivals)
     }
   }
 
@@ -353,9 +354,7 @@ export default function RivalsScreen() {
                   </View>
 
                   {isOutgoing && item.status === 'PENDING' && (
-                    <TouchableOpacity
-                      onPress={() => handleCancelChallenge(item.id)}
-                    >
+                    <TouchableOpacity onPress={() => handleCancelChallenge(item.id)}>
                       <X size={18} color='#EF4444' />
                     </TouchableOpacity>
                   )}

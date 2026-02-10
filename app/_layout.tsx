@@ -8,7 +8,7 @@ import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_700Bold,
-  useFonts
+  useFonts,
 } from '@expo-google-fonts/inter'
 
 // Supabase
@@ -22,7 +22,7 @@ import { ToastProvider } from '@/context/ToastContext'
 import { DarkTheme, ThemeProvider } from '@react-navigation/native'
 
 // Tu color de fondo exacto (de tailwind.config.js)
-const APP_BACKGROUND = '#121217'; 
+const APP_BACKGROUND = '#121217'
 
 // Personalizamos el tema de navegación para que coincida con tu Tailwind
 const MyDarkTheme = {
@@ -34,7 +34,7 @@ const MyDarkTheme = {
     text: '#FBFBFB', // Tu color 'foreground'
     border: '#32323A', // Tu color 'border'
   },
-};
+}
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null)
@@ -87,12 +87,12 @@ export default function RootLayout() {
     <ThemeProvider value={MyDarkTheme}>
       <ToastProvider>
         {/* StatusBar 'light' hace que los iconos (hora, batería) sean blancos */}
-        <StatusBar barStyle="light-content" backgroundColor={APP_BACKGROUND} />
-        
-        <Stack 
-          screenOptions={{ 
+        <StatusBar barStyle='light-content' backgroundColor={APP_BACKGROUND} />
+
+        <Stack
+          screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: APP_BACKGROUND }
+            contentStyle: { backgroundColor: APP_BACKGROUND },
           }}
         >
           <Stack.Screen name='(tabs)' />

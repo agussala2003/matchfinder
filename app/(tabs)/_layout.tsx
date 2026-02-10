@@ -37,11 +37,7 @@ export default function TabLayout() {
         options={{
           title: 'Inicio',
           tabBarIcon: ({ color, focused }) => (
-            <House 
-              size={22} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
+            <House size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
       />
@@ -50,11 +46,7 @@ export default function TabLayout() {
         options={{
           title: 'Rivales',
           tabBarIcon: ({ color, focused }) => (
-            <Search 
-              size={22} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
+            <Search size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
       />
@@ -63,11 +55,7 @@ export default function TabLayout() {
         options={{
           title: 'Partidos',
           tabBarIcon: ({ color, focused }) => (
-            <Trophy 
-              size={22} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
+            <Trophy size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
       />
@@ -76,11 +64,7 @@ export default function TabLayout() {
         options={{
           title: 'Mercado',
           tabBarIcon: ({ color, focused }) => (
-            <Megaphone 
-              size={22} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
+            <Megaphone size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
       />
@@ -89,11 +73,7 @@ export default function TabLayout() {
         options={{
           title: 'Perfil',
           tabBarIcon: ({ color, focused }) => (
-            <User 
-              size={22} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
+            <User size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
       />

@@ -56,7 +56,6 @@ export function ProfileHeader({ profile, onEditAvatar }: ProfileHeaderProps) {
         </View>
 
         <Text className='text-text-muted font-body text-sm'>@{profile?.username || 'usuario'}</Text>
-
       </View>
     </View>
   )

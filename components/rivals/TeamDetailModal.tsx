@@ -7,7 +7,7 @@ import { Team } from '@/types/teams'
 import { MapPin, Users, X } from 'lucide-react-native'
 import React, { useState } from 'react'
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native'
-import { TeamMemberCard } from '../teams/TeamMemberCard'; // ✅ Importamos la card oficial
+import { TeamMemberCard } from '../teams/TeamMemberCard' // ✅ Importamos la card oficial
 import { ChallengeRelationship } from './RivalCard'
 
 interface TeamDetailModalProps {
@@ -48,7 +48,7 @@ export function TeamDetailModal({
 
   // Filtramos solo miembros activos para mostrar en la lista rival
   const activeMembers = teamMembers.filter((m) => m.status === 'ACTIVE')
-  
+
   // Ordenar: Admin -> SubAdmin -> Player
   const sortedMembers = [...activeMembers].sort((a, b) => {
     const roles = { ADMIN: 0, SUB_ADMIN: 1, PLAYER: 2 }
@@ -61,7 +61,6 @@ export function TeamDetailModal({
     <Modal visible={visible} animationType='slide' transparent onRequestClose={onClose}>
       <View className='flex-1 bg-black/80 justify-end'>
         <View className='bg-modal h-[90%] rounded-t-3xl border-t border-transparent w-full overflow-hidden'>
-          
           {/* Close Button */}
           <View className='absolute top-4 right-4 z-10'>
             <TouchableOpacity
@@ -73,7 +72,6 @@ export function TeamDetailModal({
           </View>
 
           <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-            
             {/* --- HEADER (Estilo ManageTeam) --- */}
             <View className='pb-4 pt-10 px-4'>
               <View className='items-center pb-4'>
@@ -105,46 +103,47 @@ export function TeamDetailModal({
                 <Text className='text-gray-500 text-xs uppercase font-semibold tracking-wide mb-1'>
                   Rating ELO
                 </Text>
-                <Text className='text-primary font-title text-4xl font-bold'>{team.elo_rating}</Text>
+                <Text className='text-primary font-title text-4xl font-bold'>
+                  {team.elo_rating}
+                </Text>
               </View>
             </View>
 
             {/* --- TABS --- */}
             <View className='px-4'>
-            <View className='flex-row mx-6 mb-6 bg-gray-800/50 rounded-xl p-1'>
-              <TouchableOpacity
-                onPress={() => setActiveTab('INFO')}
-                className={`flex-1 py-2.5 rounded-lg items-center ${
-                  activeTab === 'INFO' ? 'bg-primary' : 'bg-transparent'
-                }`}
-              >
-                <Text
-                  className={`font-semibold text-sm ${
-                    activeTab === 'INFO' ? 'text-black' : 'text-gray-400'
+              <View className='flex-row mx-6 mb-6 bg-gray-800/50 rounded-xl p-1'>
+                <TouchableOpacity
+                  onPress={() => setActiveTab('INFO')}
+                  className={`flex-1 py-2.5 rounded-lg items-center ${
+                    activeTab === 'INFO' ? 'bg-primary' : 'bg-transparent'
                   }`}
                 >
-                  Información
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    className={`font-semibold text-sm ${
+                      activeTab === 'INFO' ? 'text-black' : 'text-gray-400'
+                    }`}
+                  >
+                    Información
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() => setActiveTab('MEMBERS')}
-                className={`flex-1 py-2.5 rounded-lg items-center flex-row justify-center gap-2 ${
-                  activeTab === 'MEMBERS' ? 'bg-primary' : 'bg-transparent'
-                }`}
-              >
-                <Users size={14} color={activeTab === 'MEMBERS' ? '#000' : '#9CA3AF'} />
-                <Text
-                  className={`font-semibold text-sm ${
-                    activeTab === 'MEMBERS' ? 'text-black' : 'text-gray-400'
+                <TouchableOpacity
+                  onPress={() => setActiveTab('MEMBERS')}
+                  className={`flex-1 py-2.5 rounded-lg items-center flex-row justify-center gap-2 ${
+                    activeTab === 'MEMBERS' ? 'bg-primary' : 'bg-transparent'
                   }`}
                 >
-                  Plantel ({activeMembers.length})
-                </Text>
-              </TouchableOpacity>
+                  <Users size={14} color={activeTab === 'MEMBERS' ? '#000' : '#9CA3AF'} />
+                  <Text
+                    className={`font-semibold text-sm ${
+                      activeTab === 'MEMBERS' ? 'text-black' : 'text-gray-400'
+                    }`}
+                  >
+                    Plantel ({activeMembers.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            </View>
-
 
             {/* --- CONTENIDO --- */}
             <View className='px-4'>
@@ -220,9 +219,15 @@ export function TeamDetailModal({
                 </View>
               </View>
             )}
-            
+
             {relationship === 'ACCEPTED' && (
-               <Button title='Ver Partido' variant='outline' onPress={() => { /* Navegar al chat */ }} />
+              <Button
+                title='Ver Partido'
+                variant='outline'
+                onPress={() => {
+                  /* Navegar al chat */
+                }}
+              />
             )}
           </View>
         </View>

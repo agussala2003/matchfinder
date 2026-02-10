@@ -147,9 +147,7 @@ export const Toast = ({ message, type, onHide }: ToastProps) => {
                 <Text className='font-bold text-[10px] text-text-muted mb-1 tracking-widest uppercase'>
                   {current.label}
                 </Text>
-                <Text className='text-foreground font-medium leading-5'>
-                  {message}
-                </Text>
+                <Text className='text-foreground font-medium leading-5'>{message}</Text>
               </View>
 
               {/* Close Button */}

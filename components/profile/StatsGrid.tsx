@@ -6,7 +6,7 @@ import { Text, View } from 'react-native'
 // Falta cargar las estadisticas reales desde el backend
 export function StatsGrid() {
   return (
-    <Card variant='glass' className='flex-row justify-between'>
+    <Card className='flex-row justify-between'>
       <StatItem icon={<Trophy size={20} color='#FBBF24' />} value='0' label='Partidos' />
       <View className='w-[1px] bg-border h-10 self-center' />
       <StatItem icon={<Target size={20} color='#39FF14' />} value='0' label='Goles' />

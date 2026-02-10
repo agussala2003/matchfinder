@@ -27,9 +27,9 @@ export function MemberActionModal({
   return (
     <Modal transparent visible={visible} animationType='fade' onRequestClose={onCancel}>
       <TouchableWithoutFeedback onPress={onCancel}>
-        <View className='flex-1 bg-black/70 justify-end'>
+        <View className='flex-1 bg-modal/80 justify-center px-6'>
           <TouchableWithoutFeedback>
-            <View className='bg-gray-900 rounded-t-3xl p-6 pb-10 border-t-2 border-gray-800'>
+            <View className='bg-modal border border-border w-full rounded-3xl p-6 shadow-2xl shadow-black'>
               {/* Header */}
               <View className='flex-row justify-between items-center mb-6'>
                 <Text className='text-white font-title text-xl'>Gestionar Miembro</Text>

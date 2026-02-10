@@ -84,7 +84,7 @@ export default function EditProfileScreen() {
         username: username.trim(),
         full_name: fullName.trim(),
         position: position,
-        avatar_url: currentProfile?.avatar_url,
+        avatar_url: currentProfile?.avatar_url || undefined,
       })
 
       if (result.success) {
@@ -107,9 +107,9 @@ export default function EditProfileScreen() {
         options={{
           title: 'Editar Perfil',
           headerShown: true,
-          headerStyle: { backgroundColor: '#121212' },
+          headerStyle: { backgroundColor: '#121217' },
           headerTintColor: '#fff',
-          headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
+          headerTitleStyle: { fontFamily: 'Inter_700Bold' },
         }}
       />
       <View className='flex-1 justify-center py-8'>

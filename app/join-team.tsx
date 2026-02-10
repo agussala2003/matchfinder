@@ -49,14 +49,14 @@ export default function JoinTeamScreen() {
         options={{
           title: 'Unirse a Equipo',
           headerShown: true,
-          headerStyle: { backgroundColor: '#121212' },
+          headerStyle: { backgroundColor: '#121217' },
           headerTintColor: '#fff',
-          headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
+          headerTitleStyle: { fontFamily: 'Inter_700Bold' },
           presentation: 'modal',
         }}
       />
 
-      <View className='flex-1 justify-start items-center pt-8'>
+      <View className='flex-1 justify-start items-center pt-20'>
         <View className='bg-card p-6 rounded-full mb-6 border border-border shadow-lg shadow-black'>
           <Users size={40} color='#39FF14' />
         </View>

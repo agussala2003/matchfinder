@@ -81,14 +81,13 @@ export default function CreateTeamScreen() {
         options={{
           title: 'Crear Club',
           headerShown: true,
-          headerStyle: { backgroundColor: '#121212' },
+          headerStyle: { backgroundColor: '#121217' },
           headerTintColor: '#fff',
-          headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
-          presentation: 'modal',
+          headerTitleStyle: { fontFamily: 'Inter_700Bold' }
         }}
       />
 
-      <View className='flex-1 py-8'>
+      <View className='flex-1 py-4'>
         <View className='items-center mb-8'>
           <View className='w-24 h-24 bg-card rounded-full items-center justify-center border-2 border-dashed border-border mb-4'>
             <Shield size={40} color='#9CA3AF' />

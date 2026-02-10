@@ -10,18 +10,25 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#121212',
-          borderTopWidth: 0,
+          backgroundColor: '#1A1A21', // card background
+          borderTopWidth: 1,
+          borderTopColor: '#32323A', // border color
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
-          paddingTop: 8,
+          paddingTop: 0,
+          elevation: 0, // Android: quitar sombra
+          shadowOpacity: 0, // iOS: quitar sombra
         },
-        tabBarActiveTintColor: '#39FF14',
-        tabBarInactiveTintColor: '#64748b',
+        tabBarActiveTintColor: '#00D54B', // primary (nuevo verde neón)
+        tabBarInactiveTintColor: '#A1A1AA', // text-muted
         tabBarLabelStyle: {
-          fontFamily: 'Inter_400Regular',
-          fontSize: 10,
-          marginTop: -4,
+          fontFamily: 'Inter_600SemiBold', // Más peso para mejor legibilidad
+          fontSize: 11,
+          marginTop: -2,
+          letterSpacing: 0.3,
+        },
+        tabBarItemStyle: {
+          paddingTop: 4,
         },
       }}
     >
@@ -29,35 +36,65 @@ export default function TabLayout() {
         name='index'
         options={{
           title: 'Inicio',
-          tabBarIcon: ({ color }) => <House size={24} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <House 
+              size={22} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name='rivals'
         options={{
           title: 'Rivales',
-          tabBarIcon: ({ color }) => <Search size={24} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Search 
+              size={22} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name='match'
         options={{
-          title: 'Partido',
-          tabBarIcon: ({ color }) => <Trophy size={24} color={color} />,
+          title: 'Partidos',
+          tabBarIcon: ({ color, focused }) => (
+            <Trophy 
+              size={22} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name='market'
         options={{
           title: 'Mercado',
-          tabBarIcon: ({ color }) => <Megaphone size={24} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Megaphone 
+              size={22} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name='profile'
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color }) => <User size={24} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <User 
+              size={22} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
         }}
       />
     </Tabs>

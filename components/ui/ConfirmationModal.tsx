@@ -64,7 +64,7 @@ export function ConfirmationModal({
                   title={cancelText}
                   variant='ghost' // 'ghost' o 'secondary' quedan bien aquí
                   onPress={onCancel}
-                  className='flex-1 border border-gray-700 bg-transparent'
+                  className='flex-1 border border-border bg-transparent'
                 />
                 <Button
                   title={confirmText}

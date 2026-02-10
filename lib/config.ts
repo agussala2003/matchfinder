@@ -24,7 +24,7 @@ export const CONFIG = {
   // Default Values
   defaults: {
     avatarUrl: 'https://ui-avatars.com/api/?background=39FF14&color=000&name=User',
-    teamLogoUrl: 'https://placehold.co/400x400/121212/39FF14?text=TEAM',
+    teamLogoUrl: 'https://placehold.co/400x400/121217/39FF14?text=TEAM',
     eloRating: 1200,
   },
 

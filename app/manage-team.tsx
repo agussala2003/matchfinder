@@ -245,9 +245,9 @@ export default function ManageTeamScreen() {
           options={{
             title: 'Gestión de Equipo',
             headerShown: true,
-            headerStyle: { backgroundColor: '#121212' },
+            headerStyle: { backgroundColor: '#121217' },
             headerTintColor: '#fff',
-            headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
+            headerTitleStyle: { fontFamily: 'Inter_700Bold' },
           }}
         />
         <View className='flex-1 items-center justify-center'>
@@ -265,9 +265,9 @@ export default function ManageTeamScreen() {
           options={{
             title: 'Gestión de Equipo',
             headerShown: true,
-            headerStyle: { backgroundColor: '#121212' },
+            headerStyle: { backgroundColor: '#121217' },
             headerTintColor: '#fff',
-            headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
+            headerTitleStyle: { fontFamily: 'Inter_700Bold' },
           }}
         />
         <View className='flex-1 items-center justify-center'>
@@ -287,19 +287,20 @@ export default function ManageTeamScreen() {
         options={{
           title: 'Gestión de Equipo',
           headerShown: true,
-          headerStyle: { backgroundColor: '#121212' },
+          headerStyle: { backgroundColor: '#121217' },
           headerTintColor: '#fff',
-          headerTitleStyle: { fontFamily: 'Oswald_700Bold' },
+          headerTitleStyle: { fontFamily: 'Inter_700Bold' },
         }}
       />
 
       {/* HEADER SECTION */}
-      <View className='pb-6'>
-        <View className='items-center pt-6 pb-4'>
+      <View className='pb-4'>
+        <View className='items-center pb-4'>
           {/* Team Logo */}
           <Avatar
             uri={team.logo_url}
             fallback='shield'
+            shape='circle'
             editable={canEdit}
             loading={uploading}
             onEdit={handleEditShield}
@@ -314,15 +315,15 @@ export default function ManageTeamScreen() {
           {canEdit && (
             <TouchableOpacity
               onPress={() => setShowEditTeamModal(true)}
-              className='bg-gray-800 p-2 ml-2 mt-1 rounded-full border border-gray-700'
+              className='p-1 rounded-md mt-1'
             >
-              <Pencil size={12} color='#39FF14' />
+              <Pencil size={16} color='#A1A1AA' strokeWidth={2.5} />
             </TouchableOpacity>
           )}
         </View>
 
         {/* Team Info: Location + Category */}
-        <View className='flex-row items-center justify-center gap-2 mb-4 px-4'>
+        <View className='flex-row items-center justify-center gap-2 mb-2 px-4'>
           <View className='flex-row items-center gap-1'>
             <MapPin size={14} color='#9CA3AF' strokeWidth={2} />
             <Text className='text-gray-400 text-sm'>{team.home_zone}</Text>
@@ -338,7 +339,7 @@ export default function ManageTeamScreen() {
         </View>
 
         {/* ELO Rating */}
-        <View className='items-center mb-4'>
+        <View className='items-center mb-2'>
           <Text className='text-gray-500 text-xs uppercase font-semibold tracking-wide mb-1'>
             Rating ELO
           </Text>
@@ -350,11 +351,10 @@ export default function ManageTeamScreen() {
           <TouchableOpacity
             onPress={copyCode}
             activeOpacity={0.7}
-            className='flex-row items-center bg-gray-800/50 px-4 py-2.5 rounded-xl border border-gray-700'
+            className='flex-row items-center gap-1'
           >
-            <Text className='text-gray-500 text-xs uppercase font-semibold mr-2'>Código:</Text>
-            <Text className='text-primary font-mono text-base font-bold tracking-widest mr-2.5'>
-              {team.share_code}
+            <Text className='text-gray-500 uppercase tracking-wide'>
+              Código: <Text className='text-primary font-mono'>{team.share_code}</Text>
             </Text>
             <Copy size={14} color='#39FF14' strokeWidth={2} />
           </TouchableOpacity>
@@ -362,11 +362,11 @@ export default function ManageTeamScreen() {
       </View>
 
       {/* CONTENT SECTION */}
-      <View className='p-5 pb-24 gap-6'>
+      <View className='p-5 pb-24 gap-5'>
         {/* PENDING REQUESTS */}
         {canEdit && pendingMembers.length > 0 && (
           <View>
-            <View className='flex-row items-center justify-between mb-3'>
+            <View className='flex-row items-center justify-between mb-2'>
               <Text className='text-white font-title text-lg'>Solicitudes Pendientes</Text>
               <View className='bg-yellow-500/20 px-2.5 py-1 rounded-full border border-yellow-500/30'>
                 <Text className='text-yellow-500 text-xs font-bold'>{pendingMembers.length}</Text>
@@ -390,7 +390,7 @@ export default function ManageTeamScreen() {
 
         {/* ACTIVE MEMBERS */}
         <View>
-          <View className='flex-row items-center gap-2 mb-3'>
+          <View className='flex-row items-center gap-2 mb-2'>
             <Users size={20} color='#39FF14' strokeWidth={2.5} />
             <Text className='text-white font-title text-lg'>Plantel</Text>
             <View className='bg-gray-800 px-2.5 py-0.5 rounded-full'>
@@ -398,7 +398,7 @@ export default function ManageTeamScreen() {
             </View>
           </View>
 
-          <View className='gap-3'>
+          <View className='gap-2'>
             {activeMembers.map((member: TeamMemberDetail) => (
               <TeamMemberCard
                 key={member.user_id}

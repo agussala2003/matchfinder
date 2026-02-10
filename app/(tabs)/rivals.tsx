@@ -12,7 +12,7 @@ import { Challenge } from '@/types/challenges'
 import { UserRole } from '@/types/core'
 import { Team } from '@/types/teams'
 import { router, useFocusEffect } from 'expo-router'
-import { Check, Filter, X } from 'lucide-react-native'
+import { Filter, Plus, X } from 'lucide-react-native'
 import React, { useCallback, useState } from 'react'
 import {
   ActivityIndicator,
@@ -98,12 +98,15 @@ export default function RivalsScreen() {
 
   async function fetchRivals(teamId: string, query?: string, zone?: string) {
     const res = await challengesService.searchRivals(teamId, query, zone)
-    if (res.data) setRivals(res.data)
+    if (res.data) {
+        const validRivals = res.data.filter((t: any) => (t.member_count || 0) >= 2)
+        setRivals(validRivals)
+    }
   }
 
   async function fetchChallenges(teamId: string) {
     const res = await challengesService.getMyChallenges(teamId)
-    if (res.data) setMyChallenges(res.data)
+    if (res.data) setMyChallenges(res.data.filter((c) => c.status !== 'CANCELLED'))
   }
 
   async function fetchTeamMembers(teamId: string) {
@@ -232,7 +235,7 @@ export default function RivalsScreen() {
       <View className='flex-1 p-4'>
         {activeTab === 'EXPLORE' ? (
           <>
-            <View className='mb-6 gap-3'>
+            <View className='mb-4 gap-3'>
               {myTeams.length > 1 && (
                 <Select
                   label='Gestionando como:'
@@ -344,7 +347,7 @@ export default function RivalsScreen() {
                       <Text
                         className={`text-xs uppercase font-bold mt-1 ${isOutgoing ? 'text-text-muted' : 'text-primary'}`}
                       >
-                        {isOutgoing ? '↗ Enviada' : '↙ Recibida'} • {item.status}
+                        {isOutgoing ? 'Enviada' : 'Recibida'} • {item.status}
                       </Text>
                     </View>
                   </View>
@@ -352,7 +355,6 @@ export default function RivalsScreen() {
                   {isOutgoing && item.status === 'PENDING' && (
                     <TouchableOpacity
                       onPress={() => handleCancelChallenge(item.id)}
-                      className='bg-status-error/10 p-2.5 rounded-lg border border-status-error/30'
                     >
                       <X size={18} color='#EF4444' />
                     </TouchableOpacity>
@@ -363,9 +365,8 @@ export default function RivalsScreen() {
                         setSelectedRival(otherTeam)
                         setShowDetail(true)
                       }}
-                      className='bg-primary/20 p-2.5 rounded-lg border border-primary/30'
                     >
-                      <Check size={18} color='#39FF14' />
+                      <Plus size={18} color='#FBBF24' />
                     </TouchableOpacity>
                   )}
                 </TouchableOpacity>

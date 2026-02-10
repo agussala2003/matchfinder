@@ -14,38 +14,36 @@ interface ToastProps {
 export const Toast = ({ message, type, onHide }: ToastProps) => {
   const opacity = useRef(new Animated.Value(0)).current
   const translateY = useRef(new Animated.Value(-50)).current
-  const progressWidth = useRef(new Animated.Value(0)).current // Nueva animación sin useNativeDriver
+  const scale = useRef(new Animated.Value(0.95)).current
+  const progressWidth = useRef(new Animated.Value(0)).current
 
   const config = {
     success: {
-      bg: 'bg-green-900/95',
+      bg: 'bg-card',
       border: 'border-primary',
-      iconBg: 'bg-primary/20',
-      text: 'text-primary',
+      iconBg: 'bg-primary/15',
+      iconColor: '#00D54B', // primary
       progressBg: 'bg-primary',
       label: 'ÉXITO',
       icon: CheckCircle,
-      iconColor: '#39FF14',
     },
     error: {
-      bg: 'bg-red-900/95',
-      border: 'border-red-500',
-      iconBg: 'bg-red-500/20',
-      text: 'text-red-400',
-      progressBg: 'bg-red-500',
+      bg: 'bg-card',
+      border: 'border-destructive',
+      iconBg: 'bg-destructive/15',
+      iconColor: '#D93036', // destructive
+      progressBg: 'bg-destructive',
       label: 'ERROR',
       icon: AlertCircle,
-      iconColor: '#F87171',
     },
     info: {
-      bg: 'bg-blue-900/95',
-      border: 'border-blue-500',
-      iconBg: 'bg-blue-500/20',
-      text: 'text-blue-400',
-      progressBg: 'bg-blue-500',
-      label: 'INFORMACIÓN',
+      bg: 'bg-card',
+      border: 'border-accent',
+      iconBg: 'bg-accent/15',
+      iconColor: '#5D5FEF', // accent
+      progressBg: 'bg-accent',
+      label: 'INFO',
       icon: Info,
-      iconColor: '#60A5FA',
     },
   }
 
@@ -56,41 +54,52 @@ export const Toast = ({ message, type, onHide }: ToastProps) => {
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 250,
+        duration: 200,
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
-        toValue: -50,
-        duration: 250,
+        toValue: -30,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 0.95,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start(() => {
       onHide()
     })
-  }, [opacity, translateY, onHide])
+  }, [opacity, translateY, scale, onHide])
 
   useEffect(() => {
-    // Animaciones de entrada (con useNativeDriver)
+    // Entrada suave con spring
     Animated.parallel([
       Animated.spring(opacity, {
         toValue: 1,
         useNativeDriver: true,
-        tension: 100,
-        friction: 8,
+        tension: 120,
+        friction: 9,
       }),
       Animated.spring(translateY, {
         toValue: 0,
         useNativeDriver: true,
-        tension: 100,
-        friction: 8,
+        tension: 120,
+        friction: 9,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 120,
+        friction: 9,
       }),
     ]).start()
 
-    // Animación de la barra de progreso (SIN useNativeDriver porque anima width)
+    // Barra de progreso
     Animated.timing(progressWidth, {
       toValue: 1,
-      duration: 4000, // Mismo tiempo que el timeout
-      useNativeDriver: false, // IMPORTANTE: false para width
+      duration: 4000,
+      useNativeDriver: false,
     }).start()
 
     const timer = setTimeout(() => {
@@ -98,7 +107,7 @@ export const Toast = ({ message, type, onHide }: ToastProps) => {
     }, 4000)
 
     return () => clearTimeout(timer)
-  }, [hide, opacity, translateY, progressWidth])
+  }, [hide, opacity, translateY, scale, progressWidth])
 
   return (
     <SafeAreaView
@@ -106,11 +115,11 @@ export const Toast = ({ message, type, onHide }: ToastProps) => {
       pointerEvents='box-none'
       edges={['top']}
     >
-      <View className='pt-2 w-11/12 max-w-lg px-4'>
+      <View className='pt-3 w-full px-4'>
         <Animated.View
           style={{
             opacity,
-            transform: [{ translateY }],
+            transform: [{ translateY }, { scale }],
           }}
           className='w-full'
         >
@@ -120,39 +129,41 @@ export const Toast = ({ message, type, onHide }: ToastProps) => {
             className={`
               ${current.bg} ${current.border} 
               border-2 rounded-2xl 
-              shadow-2xl shadow-black/80
+              shadow-2xl shadow-black/60
               overflow-hidden
             `}
           >
-            {/* Subtle gradient overlay for depth */}
-            <View className='absolute inset-0 bg-gradient-to-b from-white/5 to-transparent' />
+            {/* Gradient overlay sutil */}
+            <View className='absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none' />
 
-            <View className='flex-row items-start p-4 relative'>
+            <View className='flex-row items-start px-4 py-3.5 gap-3'>
               {/* Icon Container */}
-              <View className={`${current.iconBg} rounded-xl p-2.5 mr-3 flex-shrink-0`}>
-                <IconComponent size={22} color={current.iconColor} strokeWidth={2.5} />
+              <View className={`${current.iconBg} rounded-xl p-2 flex-shrink-0`}>
+                <IconComponent size={20} color={current.iconColor} strokeWidth={2.5} />
               </View>
 
               {/* Content */}
-              <View className='flex-1 mr-2'>
-                <Text className={`font-title text-xs ${current.text} mb-1.5 tracking-widest`}>
+              <View className='flex-1 min-w-0'>
+                <Text className='font-bold text-[10px] text-text-muted mb-1 tracking-widest uppercase'>
                   {current.label}
                 </Text>
-                <Text className='text-white font-medium text-sm leading-5'>{message}</Text>
+                <Text className='text-foreground font-medium leading-5'>
+                  {message}
+                </Text>
               </View>
 
               {/* Close Button */}
               <TouchableOpacity
                 onPress={hide}
-                className='p-1.5 rounded-lg bg-gray-800/50 active:bg-gray-700/50 flex-shrink-0'
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                className='p-1.5 rounded-lg bg-background/40 active:bg-background/60 flex-shrink-0 -mt-0.5'
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={16} color='#9CA3AF' strokeWidth={2.5} />
+                <X size={15} color='#A1A1AA' strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
 
             {/* Progress Bar */}
-            <View className='h-1 bg-gray-800/50 overflow-hidden'>
+            <View className='h-[3px] bg-background/50 overflow-hidden'>
               <Animated.View
                 className={current.progressBg}
                 style={{

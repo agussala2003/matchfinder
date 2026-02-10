@@ -158,7 +158,7 @@ class AuthService {
         username: validatedData.username,
         full_name: validatedData.full_name,
         position: validatedData.position,
-        avatar_url: profileData.avatar_url, // <--- AGREGAR ESTO
+        avatar_url: validatedData.avatar_url,
       }
 
       const { data, error } = await supabase.from('profiles').upsert(dataToUpsert).select().single()

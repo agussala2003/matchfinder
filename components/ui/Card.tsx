@@ -8,9 +8,9 @@ interface CardProps extends ViewProps {
 
 export function Card({ children, variant = 'default', className, ...props }: CardProps) {
   const variants = {
-    default: 'bg-card border-gray-800',
-    glass: 'bg-card/80 backdrop-blur-xl border-gray-800/50',
-    highlight: 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700',
+    default: 'bg-card border-border',
+    glass: 'bg-card/80 backdrop-blur-xl border-border/50',
+    highlight: 'bg-secondary border-border',
   }
 
   return (

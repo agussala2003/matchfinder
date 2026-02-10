@@ -29,7 +29,7 @@ export function AuthInput({
             error ? 'border-error' : 'border-border focus:border-primary'
           }`}
           placeholder={placeholder}
-          placeholderTextColor='#9CA3AF'
+          placeholderTextColor='#A1A1AA'
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}

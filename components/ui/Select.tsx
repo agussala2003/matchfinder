@@ -46,19 +46,19 @@ export function Select({
         className={`
           bg-card px-4 h-[60px] rounded-xl border
           flex-row items-center justify-between
-          ${error ? 'border-red-500/50' : 'border-gray-700'}
+          ${error ? 'border-error/50' : 'border-border'}
           ${disabled ? 'opacity-50' : 'active:border-primary/50'}
         `}
       >
         <Text
-          className={`text-base flex-1 mr-2 ${selectedOption ? 'text-white font-medium' : 'text-gray-500'}`}
+          className={`text-base flex-1 mr-2 ${selectedOption ? 'text-text-main font-medium' : 'text-muted-foreground'}`}
           numberOfLines={1}
         >
           {selectedOption ? selectedOption.label : placeholder}
         </Text>
         <ChevronDown
           size={18}
-          color={disabled ? '#4B5563' : error ? '#EF4444' : '#9CA3AF'}
+          color={disabled ? '#6B7280' : error ? '#EF4444' : '#A1A1AA'}
           strokeWidth={2.5}
         />
       </TouchableOpacity>
@@ -66,7 +66,7 @@ export function Select({
       {/* Mensaje de Error */}
       {error && (
         <View className='mt-2 ml-1'>
-          <Text className='text-red-500 text-xs font-medium'>{error}</Text>
+          <Text className='text-error text-xs font-medium'>{error}</Text>
         </View>
       )}
 
@@ -78,21 +78,21 @@ export function Select({
         onRequestClose={() => setVisible(false)}
         statusBarTranslucent
       >
-        <View className='flex-1 bg-black/70 justify-end'>
-          <View className='bg-gray-900 rounded-t-3xl border-gray-800' style={{ maxHeight: '75%' }}>
+        <View className='flex-1 bg-background/70 justify-end'>
+          <View className='bg-modal rounded-t-3xl border-border' style={{ maxHeight: '75%' }}>
             {/* Header del Modal */}
-            <View className='px-5 py-4 border-b border-gray-800 flex-row justify-between items-center'>
+            <View className='px-5 py-4 border-b border-border flex-row justify-between items-center'>
               <View className='flex-1'>
-                <Text className='text-white font-title text-lg'>{label}</Text>
-                <Text className='text-gray-500 text-xs mt-0.5'>
+                <Text className='text-text-main font-title text-lg'>{label}</Text>
+                <Text className='text-text-muted text-xs mt-0.5'>
                   {options.length} {options.length === 1 ? 'opción' : 'opciones'}
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={() => setVisible(false)}
-                className='w-10 h-10 items-center justify-center rounded-lg bg-gray-800/50 active:bg-gray-800'
+                className='w-10 h-10 items-center justify-center rounded-lg bg-secondary active:bg-secondary/80'
               >
-                <X size={20} color='#9CA3AF' strokeWidth={2.5} />
+                <X size={20} color='#A1A1AA' strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
 
@@ -124,14 +124,14 @@ export function Select({
                       ${
                         isSelected
                           ? 'bg-primary/10 border-primary/40'
-                          : 'bg-gray-800/30 border-gray-700/50 active:bg-gray-800/60'
+                          : 'bg-secondary border-border active:bg-secondary/60'
                       }
                     `}
                   >
                     <View className='flex-1 mr-3'>
                       <Text
                         className={`text-base font-semibold ${
-                          isSelected ? 'text-primary' : 'text-white'
+                          isSelected ? 'text-primary' : 'text-text-main'
                         }`}
                         numberOfLines={1}
                       >
@@ -140,7 +140,7 @@ export function Select({
 
                       {/* Mostrar código si es diferente al label */}
                       {item.value !== item.label && (
-                        <Text className='text-gray-600 text-xs font-mono mt-0.5 uppercase'>
+                        <Text className='text-muted-foreground text-xs font-mono mt-0.5 uppercase'>
                           {item.value}
                         </Text>
                       )}
@@ -149,7 +149,7 @@ export function Select({
                     {/* Indicador de selección */}
                     {isSelected && (
                       <View className='w-6 h-6 bg-primary rounded-full items-center justify-center flex-shrink-0'>
-                        <Check size={14} color='#000' strokeWidth={3} />
+                        <Check size={14} color='#121217' strokeWidth={3} />
                       </View>
                     )}
                   </TouchableOpacity>

@@ -118,15 +118,15 @@ export default function ProfileScreen() {
       </View>
 
       {/* CONTENIDO */}
-      <View className='w-11/12 mx-auto gap-10'>
+      <View className='w-11/12 mx-auto gap-5'>
         {/* ESTADÍSTICAS */}
-        <View className='gap-4'>
-          <Text className='text-text-main font-title text-lg'>Estadísticas</Text>
+        <View className='gap-2'>
+          <Text className='text-text-main font-title text-lg'>Estadísticas Totales</Text>
           <StatsGrid />
         </View>
 
         {/* MIS EQUIPOS */}
-        <View className='gap-6'>
+        <View className='gap-2'>
           <View className='flex-row items-center justify-between'>
             <Text className='text-text-main font-title text-lg'>Mis Equipos</Text>
 
@@ -137,9 +137,9 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          <View className='gap-3'>
+          <View className='gap-2'>
             {teams.length > 0 ? (
-              teams.map((item) => <TeamCard key={item.id} team={item} onCreatePress={() => {}} />)
+              teams.map((item) => <TeamCard key={item.id} team={item} onCreatePress={() => { }} />)
             ) : (
               <TeamCard team={null} onCreatePress={() => router.push('/create-team')} />
             )}
@@ -155,48 +155,48 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
 
-          {myRequests.length > 0 && (
-            <View className='gap-3'>
-              <Text className='text-text-main font-title text-lg'>Solicitudes Enviadas</Text>
-
-              <View className='gap-2'>
-                {myRequests.map((req) => (
-                  <View
-                    key={req.team_id}
-                    className='bg-card border border-border p-3 rounded-xl flex-row items-center justify-between'
-                  >
-                    <View className='flex-row items-center gap-3'>
-                      <View className='w-8 h-8 bg-modal rounded-full items-center justify-center border border-border overflow-hidden'>
-                        {req.team.logo_url ? (
-                          <Image source={{ uri: req.team.logo_url }} className='w-full h-full' />
-                        ) : (
-                          <Shield size={14} color='#9CA3AF' />
-                        )}
-                      </View>
-
-                      <Text className='text-text-main font-body text-sm'>{req.team.name}</Text>
-                    </View>
-
-                    <View className='bg-warning/20 px-2 py-1 rounded border border-warning/50 flex-row items-center gap-1'>
-                      <Clock size={10} color='#EAB308' />
-                      <Text className='text-warning text-[10px] uppercase font-bold'>
-                        Pendiente
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
         </View>
+        {myRequests.length > 0 && (
+          <View className='gap-2'>
+            <Text className='text-text-main font-title text-lg'>Solicitudes Enviadas</Text>
+
+            <View className='gap-2'>
+              {myRequests.map((req) => (
+                <View
+                  key={req.team_id}
+                  className='bg-card border border-border p-3 rounded-xl flex-row items-center justify-between'
+                >
+                  <View className='flex-row items-center gap-3'>
+                    <View className='w-8 h-8 bg-modal rounded-full items-center justify-center border border-border overflow-hidden'>
+                      {req.team.logo_url ? (
+                        <Image source={{ uri: req.team.logo_url }} className='w-full h-full' />
+                      ) : (
+                        <Shield size={14} color='#9CA3AF' />
+                      )}
+                    </View>
+
+                    <Text className='text-text-main font-body text-sm'>{req.team.name}</Text>
+                  </View>
+
+                  <View className='bg-warning/20 px-2 py-1 rounded border border-warning/50 flex-row items-center gap-1'>
+                    <Clock size={10} color='#EAB308' />
+                    <Text className='text-warning text-[10px] uppercase font-bold'>
+                      Pendiente
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* CONFIGURACIÓN */}
-        <View className='gap-6'>
-          <Text className='text-text-main font-title text-lg'>Configuración</Text>
+        <View className='gap-2'>
+          <Text className='text-text-main font-title text-lg'>Ajustes</Text>
 
           <View className='bg-card rounded-2xl border border-border overflow-hidden'>
             <MenuOption
-              icon={<UserCog size={22} color='#39FF14' />}
+              icon={<UserCog size={22} color='#F9FAFB' />}
               label='Editar Datos Personales'
               onPress={() => router.push('/edit-profile')}
               isLast={false}
@@ -213,13 +213,13 @@ export default function ProfileScreen() {
             />
           </View>
 
+        </View>
           <Button
             title='Cerrar Sesión'
             variant='danger'
             onPress={handleLogout}
             icon={<LogOut size={20} color='#EF4444' />}
           />
-        </View>
 
         <Text className='text-center text-text-muted text-xs'>MatchFinder v1.0.4</Text>
       </View>

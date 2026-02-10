@@ -36,7 +36,7 @@ export const ScreenLayout = ({
   )
 
   return (
-    <View className='flex-1 bg-dark'>
+    <View className='flex-1 bg-background'>
       <StatusBar style='light' />
 
       {/* 1. edges={['top']}: Solo protegemos arriba (Notch). 

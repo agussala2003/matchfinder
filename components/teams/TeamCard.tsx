@@ -36,7 +36,7 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
     return (
       <Card className='border-dashed border-gray-700 bg-transparent p-6'>
         <View className='flex-row items-center gap-4 mb-6'>
-          <View className='w-14 h-14 bg-gray-800 rounded-full items-center justify-center border border-gray-700'>
+          <View className='w-16 h-16 bg-gray-800 rounded-full items-center justify-center border border-gray-700'>
             <Shield size={26} color='#9CA3AF' strokeWidth={2} />
           </View>
           <View className='flex-1'>
@@ -45,7 +45,7 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
           </View>
         </View>
 
-        <View className='flex-row gap-3'>
+        <View className='flex-row gap-4'>
           <Button title='Crear' variant='primary' onPress={onCreatePress} className='flex-1' />
           <Button
             title='Unirse'
@@ -67,7 +67,7 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
           <View className='flex-row items-center gap-3 flex-1 min-w-0'>
             {/* Escudo */}
             <View className='relative flex-shrink-0'>
-              <View className='w-14 h-14 bg-gray-800 rounded-xl items-center justify-center border border-gray-700 overflow-hidden'>
+              <View className='w-16 h-16 bg-zinc-800 rounded-xl items-center justify-center'>
                 {team.logo_url ? (
                   <Image
                     source={{ uri: team.logo_url }}
@@ -75,7 +75,15 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
                     resizeMode='cover'
                   />
                 ) : (
-                  <Shield size={28} color='#9CA3AF' strokeWidth={2} />
+                  // Iniciales del equipo
+                  <Text className='text-white text-xl font-bold'>
+                    {team.name
+                      .split(' ')
+                      .map((word) => word[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </Text>
                 )}
               </View>
 
@@ -88,10 +96,10 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
             </View>
 
             {/* Info del equipo */}
-            <View className='flex-1 gap-1 min-w-0'>
+            <View className='flex-1 gap-1 '>
               {/* Nombre */}
               <Text
-                className='text-white font-title text-lg'
+                className='text-white font-title text-base capitalize'
                 numberOfLines={1}
                 ellipsizeMode='tail'
               >
@@ -100,32 +108,27 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
 
               {/* Ubicación y categoría */}
               <View className='flex-row items-center gap-1 min-w-0'>
-                <MapPin size={11} color='#6B7280' strokeWidth={2} className='flex-shrink-0' />
+                <MapPin size={11} color='#9CA3AF' strokeWidth={2} className='flex-shrink-0' />
                 <Text
-                  className='text-gray-400 text-xs flex-shrink'
+                  className='text-gray-400 text-xs capitalize flex-shrink'
                   numberOfLines={1}
                   ellipsizeMode='tail'
                 >
-                  {team.home_zone} •{' '}
-                  {team.category === 'MALE' ? 'Masc' : team.category === 'FEMALE' ? 'Fem' : 'Mixto'}
+                  {team.home_zone} · {team.category === 'MALE' ? 'Masc' : team.category === 'FEMALE' ? 'Fem' : 'Mixto'}
                 </Text>
               </View>
 
               {/* Código de invitación */}
               {team.share_code && (
                 <TouchableOpacity
-                  onPress={(e) => {
-                    e.stopPropagation()
-                    handleCopyCode()
-                  }}
                   activeOpacity={0.7}
-                  className='flex-row items-center gap-1.5 self-start flex-shrink-0'
+                  onPress={handleCopyCode}
+                  className='flex-row items-center gap-1'
                 >
-                  <Text className='text-gray-500 text-[10px] uppercase font-semibold'>Código:</Text>
-                  <Text className='text-primary font-mono text-xs font-semibold tracking-wider'>
-                    {team.share_code}
+                  <Text className='text-gray-500 text-xs uppercase tracking-wide'>
+                    Código: <Text className='text-primary font-mono'>{team.share_code}</Text>
                   </Text>
-                  <Copy size={11} color='#39FF14' strokeWidth={2} />
+                  <Copy size={12} color='#39FF14' strokeWidth={2} />
                 </TouchableOpacity>
               )}
             </View>
@@ -135,7 +138,7 @@ export function TeamCard({ team, onCreatePress, pendingRequestsCount = 0 }: Team
           <View className='flex-row items-center gap-2 flex-shrink-0'>
             {/* ELO */}
             <View className='items-center min-w-[60px]'>
-              <Text className='text-gray-500 text-[9px] uppercase font-semibold tracking-wide mb-0.5'>
+              <Text className='text-gray-500 text-xs uppercase font-semibold tracking-wide mb-0.5'>
                 ELO
               </Text>
               <Text className='text-primary font-title text-2xl font-bold leading-tight'>

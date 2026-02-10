@@ -21,7 +21,7 @@ export function ProfileHeader({ profile, onEditAvatar }: ProfileHeaderProps) {
   return (
     <View className='items-center pt-10 pb-6'>
       {/* Avatar Container */}
-      <TouchableOpacity onPress={onEditAvatar} activeOpacity={0.8} className='relative mb-5'>
+      <TouchableOpacity onPress={onEditAvatar} activeOpacity={0.8} className='relative mb-2'>
         <View className='w-32 h-32 bg-modal rounded-full items-center justify-center border-4 border-primary shadow-2xl shadow-primary/20 overflow-hidden'>
           {profile?.avatar_url ? (
             <Image
@@ -37,18 +37,16 @@ export function ProfileHeader({ profile, onEditAvatar }: ProfileHeaderProps) {
         </View>
 
         {/* Botón de Cámara */}
-        <View className='absolute bottom-0 right-0 bg-dark rounded-full p-2.5 border border-gray-700 shadow-sm'>
-          <Camera size={18} color='#39FF14' />
+        <View className='absolute bottom-0 right-0 bg-modal rounded-full p-2.5 border border-border shadow-sm'>
+          <Camera size={18} color='#00D54B' />
         </View>
       </TouchableOpacity>
 
       {/* Info Principal */}
-      <View className='flex items-center gap-3'>
-        <Text className='text-text-main font-title text-3xl uppercase tracking-wide text-center'>
+      <View className='flex items-center gap-2'>
+        <Text className='text-text-main font-title text-2xl capitalize tracking-wide text-center'>
           {profile?.full_name || 'Cargando...'}
         </Text>
-
-        <Text className='text-text-muted font-body text-sm'>@{profile?.username || 'usuario'}</Text>
 
         {/* Badge Posición */}
         <View className='bg-primary/10 px-5 py-1.5 rounded-full border border-primary/30'>
@@ -56,6 +54,9 @@ export function ProfileHeader({ profile, onEditAvatar }: ProfileHeaderProps) {
             {POSICIONES_ARGENTINAS[profile?.position as Posicion] || 'JUGADOR LIBRE'}
           </Text>
         </View>
+
+        <Text className='text-text-muted font-body text-sm'>@{profile?.username || 'usuario'}</Text>
+
       </View>
     </View>
   )

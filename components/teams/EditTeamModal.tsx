@@ -7,11 +7,11 @@ import React, { useEffect, useState } from 'react'
 import {
   Modal,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native'
+import { AuthInput } from '../ui/AuthInput'
 
 interface EditTeamModalProps {
   visible: boolean
@@ -44,9 +44,9 @@ export function EditTeamModal({ visible, team, onSave, onCancel }: EditTeamModal
   return (
     <Modal transparent visible={visible} animationType='fade' onRequestClose={onCancel}>
       <TouchableWithoutFeedback onPress={onCancel}>
-        <View className='flex-1 bg-black/70 justify-center px-6'>
+        <View className='flex-1 bg-modal/80 justify-center px-6'>
           <TouchableWithoutFeedback>
-            <View className='bg-gray-900 border-2 border-gray-800 rounded-3xl p-6 shadow-2xl'>
+            <View className='bg-modal border border-border w-full rounded-3xl p-6 shadow-2xl shadow-black'>
               {/* Header */}
               <View className='flex-row justify-between items-center mb-6'>
                 <Text className='text-white font-title text-xl uppercase'>Editar Equipo</Text>
@@ -57,15 +57,11 @@ export function EditTeamModal({ visible, team, onSave, onCancel }: EditTeamModal
 
               {/* Input: Nombre */}
               <View className='mb-4'>
-                <Text className='text-gray-500 text-xs font-semibold uppercase tracking-wide mb-2 pl-1'>
-                  Nombre del Equipo
-                </Text>
-                <TextInput
+                <AuthInput 
+                  label='Nombre del Equipo'
+                  placeholder='Ej: Los Galácticos FC'
                   value={name}
                   onChangeText={setName}
-                  className='bg-gray-800 text-white px-4 h-[60px] rounded-xl border-2 border-gray-700 font-body text-base'
-                  placeholderTextColor='#9CA3AF'
-                  maxLength={30}
                 />
               </View>
 
@@ -82,7 +78,7 @@ export function EditTeamModal({ visible, team, onSave, onCancel }: EditTeamModal
 
               {/* Select: Categoría */}
               <View className='mb-6'>
-                <Text className='text-gray-500 text-xs font-semibold uppercase tracking-wide mb-3 pl-1'>
+                <Text className='text-text-muted text-xs uppercase font-bold mb-2 pl-1'>
                   Categoría
                 </Text>
                 <View className='flex-row gap-2'>
@@ -90,15 +86,15 @@ export function EditTeamModal({ visible, team, onSave, onCancel }: EditTeamModal
                     <TouchableOpacity
                       key={cat}
                       onPress={() => setCategory(cat)}
-                      className={`flex-1 py-3 rounded-xl border-2 items-center justify-center ${
+                      className={`flex-1 py-3 rounded-xl border items-center justify-center ${
                         category === cat
                           ? 'bg-primary/10 border-primary'
-                          : 'bg-gray-800 border-gray-700'
+                          : 'bg-card border-border'
                       }`}
                     >
                       <Text
                         className={`font-bold text-sm uppercase ${
-                          category === cat ? 'text-primary' : 'text-gray-400'
+                          category === cat ? 'text-primary' : 'text-text-muted'
                         }`}
                       >
                         {cat === 'MALE' ? 'Masc' : cat === 'FEMALE' ? 'Fem' : 'Mixto'}

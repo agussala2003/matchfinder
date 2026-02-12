@@ -8,7 +8,7 @@ export interface ChatMessage {
   content: string
   type: 'TEXT' | 'PROPOSAL'
   proposal_data?: { date: string; time: string }
-  status: 'SENT' | 'ACCEPTED' | 'REJECTED'
+  status: 'SENT' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED'
   created_at: string
 }
 
@@ -75,11 +75,11 @@ class ChatService {
   }
 
   /**
-   * Responder Propuesta (Aceptar/Rechazar)
+   * Responder Propuesta (Aceptar/Rechazar/Cancelar)
    */
   async respondProposal(
     messageId: string,
-    status: 'ACCEPTED' | 'REJECTED',
+    status: 'ACCEPTED' | 'REJECTED' | 'CANCELLED',
   ): Promise<ServiceResponse> {
     try {
       const { error } = await supabase.from('match_messages').update({ status }).eq('id', messageId)

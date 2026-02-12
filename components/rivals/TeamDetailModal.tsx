@@ -7,7 +7,7 @@ import { Team } from '@/types/teams'
 import { MapPin, Users, X } from 'lucide-react-native'
 import React, { useState } from 'react'
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native'
-import { TeamMemberCard } from '../teams/TeamMemberCard' // ✅ Importamos la card oficial
+import { TeamMemberCard } from '../teams/TeamMemberCard'; // ✅ Importamos la card oficial
 import { ChallengeRelationship } from './RivalCard'
 
 interface TeamDetailModalProps {
@@ -111,7 +111,7 @@ export function TeamDetailModal({
 
             {/* --- TABS --- */}
             <View className='px-4'>
-              <View className='flex-row mx-6 mb-6 bg-gray-800/50 rounded-xl p-1'>
+              <View className='flex-row mb-6 bg-gray-800/50 rounded-xl p-1'>
                 <TouchableOpacity
                   onPress={() => setActiveTab('INFO')}
                   className={`flex-1 py-2.5 rounded-lg items-center ${

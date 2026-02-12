@@ -138,6 +138,7 @@ class MatchesService {
     matchId: string,
     updates: Partial<{
       scheduled_at: string
+      is_friendly: boolean
       status: MatchStatus
       booking_confirmed: boolean
       venue_id: string

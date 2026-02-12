@@ -233,7 +233,7 @@ export default function RivalsScreen() {
         />
       </View>
 
-      <View className='flex-1 p-4'>
+      <View className='flex-1 pt-4 px-4'>
         {activeTab === 'EXPLORE' ? (
           <>
             <View className='mb-4 gap-3'>

@@ -1,8 +1,5 @@
-import { AuthInput } from '@/components/ui/AuthInput'
-import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
-import { Select } from '@/components/ui/Select'
 import { useToast } from '@/context/ToastContext'
 import { ZONAS_AMBA } from '@/lib/constants'
 import { authService } from '@/services/auth.service'
@@ -12,19 +9,12 @@ import { Challenge } from '@/types/challenges'
 import { UserRole } from '@/types/core'
 import { Team } from '@/types/teams'
 import { router, useFocusEffect } from 'expo-router'
-import { Filter, Plus, X } from 'lucide-react-native'
 import React, { useCallback, useState } from 'react'
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native'
+import { ActivityIndicator, Text, View } from 'react-native'
 
-// Componentes
-import { ChallengeRelationship, RivalCard } from '@/components/rivals/RivalCard'
+// Components
+import { ChallengesList, RivalsList, SearchFilters, TabButton } from '@/components/rivals-list'
+import { ChallengeRelationship } from '@/components/rivals/RivalCard'
 import { TeamDetailModal } from '@/components/rivals/TeamDetailModal'
 
 export default function RivalsScreen() {
@@ -158,16 +148,6 @@ export default function RivalsScreen() {
     }
   }
 
-  async function handleCancelChallenge(challengeId: string) {
-    const res = await challengesService.updateStatus(challengeId, 'CANCELLED')
-    if (res.success) {
-      showToast('Desafío cancelado', 'success')
-      if (currentTeam) fetchChallenges(currentTeam.id)
-    } else {
-      showToast('Error al cancelar', 'error')
-    }
-  }
-
   // --- HELPERS ---
   const getRelationship = (otherTeamId: string): ChallengeRelationship => {
     if (!currentTeam) return 'NONE'
@@ -236,33 +216,21 @@ export default function RivalsScreen() {
       <View className='flex-1 pt-4 px-4'>
         {activeTab === 'EXPLORE' ? (
           <>
-            <View className='mb-4 gap-3'>
-              {myTeams.length > 1 && (
-                <Select
-                  label='Gestionando como:'
-                  value={currentTeam.id}
-                  options={myTeams.map((t) => ({ label: t.name, value: t.id }))}
-                  onChange={(id) => {
-                    const t = myTeams.find((team) => team.id === id)
-                    if (t) setCurrentTeam(t)
-                  }}
-                />
-              )}
-              <AuthInput
-                label='Buscar equipo'
-                placeholder='Buscar equipo...'
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              <Select
-                label='Filtrar por Zona'
-                placeholder='Selecciona zona...'
-                options={zoneOptions}
-                value={selectedZone}
-                onChange={setSelectedZone}
-              />
-            </View>
+            <SearchFilters
+              myTeams={myTeams}
+              currentTeam={currentTeam}
+              searchQuery={searchQuery}
+              selectedZone={selectedZone}
+              zoneOptions={zoneOptions}
+              onTeamChange={(id) => {
+                const t = myTeams.find((team) => team.id === id)
+                if (t) setCurrentTeam(t)
+              }}
+              onSearchChange={setSearchQuery}
+              onZoneChange={setSelectedZone}
+            />
 
+            
             <Text className='text-text-muted text-xs uppercase mb-4 font-semibold'>
               Resultados para{' '}
               <Text className='text-text-main font-bold'>
@@ -270,120 +238,39 @@ export default function RivalsScreen() {
               </Text>
               :
             </Text>
-            <FlatList
-              data={rivals}
-              keyExtractor={(item) => item.id}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={() => {
-                    setRefreshing(true)
-                    loadData()
-                  }}
-                  tintColor='#39FF14'
-                />
-              }
-              contentContainerStyle={{ paddingBottom: 100 }}
-              renderItem={({ item }) => (
-                <RivalCard
-                  team={item}
-                  onPress={() => {
-                    setSelectedRival(item)
-                    setShowDetail(true)
-                  }}
-                  onChallenge={() => handleChallenge(item.id)}
-                  canChallenge={canManage}
-                  relationship={getRelationship(item.id)}
-                />
-              )}
-              ListEmptyComponent={
-                <View className='items-center mt-16 px-6'>
-                  <View className='w-20 h-20 bg-gray-800/50 rounded-3xl items-center justify-center mb-6 border border-gray-700/50'>
-                    <Filter size={36} color='#39FF14' strokeWidth={1.5} />
-                  </View>
-                  <Text className='text-gray-300 text-center font-title text-lg mb-2'>
-                    No hay rivales disponibles
-                  </Text>
-                  <Text className='text-gray-500 text-center text-sm leading-5'>
-                    Intenta ajustar los filtros o{'\n'}buscar en otra zona
-                  </Text>
-                </View>
-              }
+            
+            <RivalsList
+              rivals={rivals}
+              refreshing={refreshing}
+              canManage={canManage}
+              onRefresh={() => {
+                setRefreshing(true)
+                loadData()
+              }}
+              onRivalPress={(rival) => {
+                setSelectedRival(rival)
+                setShowDetail(true)
+              }}
+              onChallenge={handleChallenge}
+              getRelationship={getRelationship}
             />
           </>
         ) : (
-          <FlatList
-            data={myChallenges}
-            keyExtractor={(item) => item.id}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => {
-                  setRefreshing(true)
-                  loadData()
-                }}
-                tintColor='#39FF14'
-              />
-            }
-            contentContainerStyle={{ paddingBottom: 100 }}
-            renderItem={({ item }) => {
-              const isOutgoing = item.challenger_team_id === currentTeam.id
-              const otherTeam = isOutgoing ? item.target : item.challenger
-              if (!otherTeam) return null
-
-              return (
-                <TouchableOpacity
-                  onPress={() => {
-                    setSelectedRival(otherTeam)
-                    setShowDetail(true)
-                  }}
-                  className='bg-card p-4 rounded-xl border border-border mb-3 flex-row justify-between items-center'
-                >
-                  <View className='flex-row items-center gap-3 flex-1'>
-                    <Avatar uri={otherTeam.logo_url} fallback='shield' size={48} />
-                    <View className='flex-1'>
-                      <Text className='text-text-main font-bold text-base' numberOfLines={1}>
-                        {otherTeam.name}
-                      </Text>
-                      <Text
-                        className={`text-xs uppercase font-bold mt-1 ${isOutgoing ? 'text-text-muted' : 'text-primary'}`}
-                      >
-                        {isOutgoing ? 'Enviada' : 'Recibida'} • {item.status}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {isOutgoing && item.status === 'PENDING' && (
-                    <TouchableOpacity onPress={() => handleCancelChallenge(item.id)}>
-                      <X size={18} color='#EF4444' />
-                    </TouchableOpacity>
-                  )}
-                  {!isOutgoing && item.status === 'PENDING' && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedRival(otherTeam)
-                        setShowDetail(true)
-                      }}
-                    >
-                      <Plus size={18} color='#FBBF24' />
-                    </TouchableOpacity>
-                  )}
-                </TouchableOpacity>
-              )
+          <ChallengesList
+            challenges={myChallenges}
+            currentTeam={currentTeam!}
+            refreshing={refreshing}
+            canManage={canManage}
+            onRefresh={() => {
+              setRefreshing(true)
+              loadData()
             }}
-            ListEmptyComponent={
-              <View className='items-center mt-16 px-6'>
-                <View className='w-20 h-20 bg-gray-800/50 rounded-3xl items-center justify-center mb-6 border border-gray-700/50'>
-                  <X size={36} color='#6B7280' strokeWidth={1.5} />
-                </View>
-                <Text className='text-gray-300 text-center font-title text-lg mb-2'>
-                  No tienes desafíos activos
-                </Text>
-                <Text className='text-gray-500 text-center text-sm'>
-                  Busca rivales en la pestaña &ldquo;Explorar&rdquo;
-                </Text>
-              </View>
-            }
+            onChallengePress={(team) => {
+              setSelectedRival(team)
+              setShowDetail(true)
+            }}
+            onAcceptChallenge={(challengeId) => handleRespondChallenge(challengeId, true)}
+            onRejectChallenge={(challengeId) => handleRespondChallenge(challengeId, false)}
           />
         )}
       </View>
@@ -393,7 +280,7 @@ export default function RivalsScreen() {
         team={selectedRival}
         teamMembers={selectedRivalMembers}
         myTeams={myTeams}
-        selectedTeamId={currentTeam.id}
+        selectedTeamId={currentTeam?.id || ''}
         onSelectTeam={(id) => {
           const t = myTeams.find((x) => x.id === id)
           if (t) setCurrentTeam(t)
@@ -414,14 +301,3 @@ export default function RivalsScreen() {
     </ScreenLayout>
   )
 }
-
-const TabButton = ({ title, isActive, onPress }: any) => (
-  <TouchableOpacity
-    onPress={onPress}
-    className={`mr-6 pb-3 ${isActive ? 'border-b-2 border-primary' : 'opacity-40'}`}
-  >
-    <Text className={`font-title text-lg ${isActive ? 'text-primary' : 'text-text-muted'}`}>
-      {title}
-    </Text>
-  </TouchableOpacity>
-)

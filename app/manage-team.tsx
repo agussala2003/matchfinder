@@ -1,9 +1,9 @@
 import * as Clipboard from 'expo-clipboard'
 import * as ImagePicker from 'expo-image-picker'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
-import { Copy, LogOut, MapPin, Pencil, Users } from 'lucide-react-native'
+import { LogOut } from 'lucide-react-native'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Text, View } from 'react-native'
 
 // Services & Context
 import { useToast } from '@/context/ToastContext'
@@ -14,11 +14,12 @@ import { TeamMemberStatus, UserRole } from '@/types/core'
 import { Team } from '@/types/teams'
 
 // Components
+import { ActiveMembersSection } from '@/components/manage-team/ActiveMembersSection'
+import { PendingRequestsSection } from '@/components/manage-team/PendingRequestsSection'
+import { ShareCodeSection } from '@/components/manage-team/ShareCodeSection'
+import { TeamHeader } from '@/components/manage-team/TeamHeader'
 import { EditTeamModal } from '@/components/teams/EditTeamModal'
 import { MemberActionModal } from '@/components/teams/MemberActionModal'
-import { PendingRequestCard } from '@/components/teams/PendingRequestCard'
-import { TeamMemberCard } from '@/components/teams/TeamMemberCard'
-import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
@@ -294,134 +295,39 @@ export default function ManageTeamScreen() {
       />
 
       {/* HEADER SECTION */}
-      <View className='pb-4'>
-        <View className='items-center pb-4'>
-          {/* Team Logo */}
-          <Avatar
-            uri={team.logo_url}
-            fallback='shield'
-            shape='circle'
-            editable={canEdit}
-            loading={uploading}
-            onEdit={handleEditShield}
-          />
-        </View>
-
-        {/* Team Name */}
-        <View className='flex-row items-center justify-center gap-2 mb-2 px-6'>
-          <Text className='text-white font-title text-3xl text-center' numberOfLines={2}>
-            {team.name}
-          </Text>
-          {canEdit && (
-            <TouchableOpacity
-              onPress={() => setShowEditTeamModal(true)}
-              className='p-1 rounded-md mt-1'
-            >
-              <Pencil size={16} color='#A1A1AA' strokeWidth={2.5} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Team Info: Location + Category */}
-        <View className='flex-row items-center justify-center gap-2 mb-2 px-4'>
-          <View className='flex-row items-center gap-1'>
-            <MapPin size={14} color='#9CA3AF' strokeWidth={2} />
-            <Text className='text-gray-400 text-sm'>{team.home_zone}</Text>
-          </View>
-          <View className='w-1 h-1 bg-gray-600 rounded-full' />
-          <Text className='text-gray-400 text-sm'>
-            {team.category === 'MALE'
-              ? 'Masculino'
-              : team.category === 'FEMALE'
-                ? 'Femenino'
-                : 'Mixto'}
-          </Text>
-        </View>
-
-        {/* ELO Rating */}
-        <View className='items-center mb-2'>
-          <Text className='text-gray-500 text-xs uppercase font-semibold tracking-wide mb-1'>
-            Rating ELO
-          </Text>
-          <Text className='text-primary font-title text-4xl font-bold'>{team.elo_rating}</Text>
-        </View>
-
-        {/* Share Code */}
-        <View className='items-center px-4'>
-          <TouchableOpacity
-            onPress={copyCode}
-            activeOpacity={0.7}
-            className='flex-row items-center gap-1'
-          >
-            <Text className='text-gray-500 uppercase tracking-wide'>
-              Código: <Text className='text-primary font-mono'>{team.share_code}</Text>
-            </Text>
-            <Copy size={14} color='#39FF14' strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TeamHeader
+        team={team}
+        canEdit={canEdit}
+        uploading={uploading}
+        onEditShield={handleEditShield}
+        onEditTeam={() => setShowEditTeamModal(true)}
+      />
+      
+      <ShareCodeSection shareCode={team.share_code} onCopyCode={copyCode} />
 
       {/* CONTENT SECTION */}
-      <View className='p-5 pb-24 gap-5'>
-        {/* PENDING REQUESTS */}
-        {canEdit && pendingMembers.length > 0 && (
-          <View>
-            <View className='flex-row items-center justify-between mb-2'>
-              <Text className='text-white font-title text-lg'>Solicitudes Pendientes</Text>
-              <View className='bg-yellow-500/20 px-2.5 py-1 rounded-full border border-yellow-500/30'>
-                <Text className='text-yellow-500 text-xs font-bold'>{pendingMembers.length}</Text>
-              </View>
-            </View>
-            <View className='gap-3'>
-              {pendingMembers.map((m: TeamMemberDetail) => (
-                <PendingRequestCard
-                  key={m.user_id}
-                  userId={m.user_id}
-                  fullName={m.profile.full_name}
-                  username={m.profile.username}
-                  avatarUrl={m.profile.avatar_url || undefined}
-                  onAccept={() => handleRequest(m.user_id, true)}
-                  onReject={() => handleRequest(m.user_id, false)}
-                />
-              ))}
-            </View>
-          </View>
+      <View className="p-5 pb-24 gap-5">
+        {canEdit && (
+          <PendingRequestsSection
+            pendingMembers={pendingMembers}
+            onAccept={(userId) => handleRequest(userId, true)}
+            onReject={(userId) => handleRequest(userId, false)}
+          />
         )}
 
-        {/* ACTIVE MEMBERS */}
-        <View>
-          <View className='flex-row items-center gap-2 mb-2'>
-            <Users size={20} color='#39FF14' strokeWidth={2.5} />
-            <Text className='text-white font-title text-lg'>Plantel</Text>
-            <View className='bg-gray-800 px-2.5 py-0.5 rounded-full'>
-              <Text className='text-gray-400 text-xs font-bold'>{activeMembers.length}</Text>
-            </View>
-          </View>
+        <ActiveMembersSection
+          activeMembers={activeMembers}
+          currentUser={currentUser}
+          isCaptain={isCaptain}
+          onMemberPress={openMemberOptions}
+        />
 
-          <View className='gap-2'>
-            {activeMembers.map((member: TeamMemberDetail) => (
-              <TeamMemberCard
-                key={member.user_id}
-                userId={member.user_id}
-                fullName={member.profile.full_name}
-                username={member.profile.username}
-                avatarUrl={member.profile.avatar_url || undefined}
-                role={member.role as UserRole}
-                isCurrentUser={member.user_id === currentUser}
-                canManage={isCaptain}
-                onPress={() => openMemberOptions(member)}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* LEAVE TEAM BUTTON */}
         <Button
-          title='Abandonar Equipo'
-          variant='danger'
+          title="Abandonar Equipo"
+          variant="danger"
           onPress={() => setShowLeaveModal(true)}
-          icon={<LogOut size={20} color='#EF4444' strokeWidth={2.5} />}
-          className='mt-2'
+          icon={<LogOut size={20} color="#EF4444" strokeWidth={2.5} />}
+          className="mt-2"
         />
       </View>
 

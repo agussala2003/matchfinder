@@ -12,26 +12,14 @@ import {
   AlertTriangle,
   Calendar,
   Camera,
-  Check,
-  CheckCircle2,
   Circle,
   Clock,
-  Lock,
-  MapPin,
-  Minus,
-  Navigation,
-  Pencil,
-  Plus,
-  Send,
-  Shield,
   X,
 } from 'lucide-react-native'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
-  Image,
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -42,6 +30,15 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+// Components
+import { ChatSection } from '@/components/match/ChatSection'
+import { CheckinSection } from '@/components/match/CheckinSection'
+import { DetailsView } from '@/components/match/DetailsView'
+import { LineupView } from '@/components/match/LineupView'
+import { MatchHeader } from '@/components/match/MatchHeader'
+import { MatchTabs } from '@/components/match/MatchTabs'
+import { PostmatchSection } from '@/components/match/PostmatchSection'
 
 type MatchState = 'previa' | 'checkin' | 'postmatch'
 type TabState = 'details' | 'lineup' | 'chat'
@@ -56,7 +53,7 @@ export default function MatchScreen() {
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams()
   const { showToast } = useToast()
-  const flatListRef = useRef<FlatList>(null)
+  const flatListRef = useRef<FlatList | null>(null)
 
   const [matchState, setMatchState] = useState<MatchState>('previa')
   const [activeTab, setActiveTab] = useState<TabState>('chat')
@@ -100,6 +97,81 @@ export default function MatchScreen() {
   const [awayScore, setAwayScore] = useState(0)
   const [selectedMVP, setSelectedMVP] = useState<string | null>(null)
 
+  const initializeMatch = useCallback(async (matchId: string) => {
+    try {
+      setLoading(true)
+
+      const session = await authService.getSession()
+      const userId = session.data?.user?.id
+      if (!userId) {
+        showToast('No se pudo identificar el usuario', 'error')
+        setLoading(false)
+        return
+      }
+
+      const matchRes = await matchesService.getMatchById(matchId)
+      if (!matchRes.data) {
+        showToast('Partido no encontrado', 'error')
+        setLoading(false)
+        return
+      }
+      setMatch(matchRes.data)
+
+      if (
+        matchRes.data?.team_a?.id &&
+        matchRes.data?.team_b?.id
+      ) {
+        const [resA, resB] = await Promise.all([
+          teamsService.getTeamMembers(matchRes.data.team_a.id),
+          teamsService.getTeamMembers(matchRes.data.team_b.id),
+        ])
+
+        const memberA = resA.data?.find((m) => m.user_id === userId)
+        const memberB = resB.data?.find((m) => m.user_id === userId)
+
+        if (memberA) {
+          setMyTeamId(matchRes.data.team_a.id)
+          setMyTeam(matchRes.data.team_a)
+          setRivalTeam(matchRes.data.team_b)
+          setTeamMembers(resA.data || [])
+          setCanManage(memberA.role === UserRole.ADMIN || memberA.role === UserRole.SUB_ADMIN)
+        } else if (memberB) {
+          setMyTeamId(matchRes.data.team_b.id)
+          setMyTeam(matchRes.data.team_b)
+          setRivalTeam(matchRes.data.team_a)
+          setTeamMembers(resB.data || [])
+          setCanManage(memberB.role === UserRole.ADMIN || memberB.role === UserRole.SUB_ADMIN)
+        } else {
+          showToast('No tienes acceso a este partido', 'error')
+          setLoading(false)
+          return
+        }
+
+        const bothTeamMembers: CitedPlayer[] = [
+          ...(resA.data || []).map((player) => ({
+            ...player,
+            teamName: matchRes.data?.team_a?.name || 'Equipo A',
+            isBothTeams: true,
+          })),
+          ...(resB.data || []).map((player) => ({
+            ...player,
+            teamName: matchRes.data?.team_b?.name || 'Equipo B',
+            isBothTeams: true,
+          })),
+        ]
+        setCitedPlayers(bothTeamMembers)
+      }
+
+      const chatRes = await chatService.getMessages(matchId)
+      if (chatRes.data) setMessages(chatRes.data)
+    } catch (e) {
+      console.error('Error initializing match:', e)
+      showToast('Error al cargar el partido', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }, [showToast])
+
   useEffect(() => {
     if (id) initializeMatch(id as string)
 
@@ -122,7 +194,7 @@ export default function MatchScreen() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [id])
+  }, [id, initializeMatch])
 
   useEffect(() => {
     if (!match) return
@@ -147,87 +219,7 @@ export default function MatchScreen() {
     }
   }, [match])
 
-  async function initializeMatch(matchId: string) {
-    try {
-      setLoading(true)
 
-      const session = await authService.getSession()
-      const userId = session.data?.user?.id
-      if (!userId) {
-        showToast('No se pudo identificar el usuario', 'error')
-        setLoading(false)
-        return
-      }
-
-      const matchRes = await matchesService.getMatchById(matchId)
-      if (!matchRes.data) {
-        showToast('No se pudo cargar el partido', 'error')
-        setLoading(false)
-        return
-      }
-
-      setMatch(matchRes.data)
-      setPropIsFriendly(matchRes.data.is_friendly)
-      if(matchRes.data.venue?.name) setPropVenue(matchRes.data.venue.name)
-      if(matchRes.data.scheduled_at) {
-        setPropDate(new Date(matchRes.data.scheduled_at))
-        setPropTime(new Date(matchRes.data.scheduled_at))
-      }
-
-      const [resA, resB] = await Promise.all([
-        teamsService.getTeamMembers(matchRes.data.team_a.id),
-        teamsService.getTeamMembers(matchRes.data.team_b.id),
-      ])
-
-      const memberA = resA.data?.find((m) => m.user_id === userId)
-      const memberB = resB.data?.find((m) => m.user_id === userId)
-
-      if (memberA) {
-        setMyTeamId(matchRes.data.team_a.id)
-        setMyTeam(matchRes.data.team_a)
-        setRivalTeam(matchRes.data.team_b)
-        setTeamMembers(resA.data || [])
-        setCanManage(memberA.role === UserRole.ADMIN || memberA.role === UserRole.SUB_ADMIN)
-      } else if (memberB) {
-        setMyTeamId(matchRes.data.team_b.id)
-        setMyTeam(matchRes.data.team_b)
-        setRivalTeam(matchRes.data.team_a)
-        setTeamMembers(resB.data || [])
-        setCanManage(memberB.role === UserRole.ADMIN || memberB.role === UserRole.SUB_ADMIN)
-      } else {
-        showToast('No tienes acceso a este partido', 'error')
-        setLoading(false)
-        return
-      }
-
-      // --- LOGICA DE JUGADORES CITADOS COMBINADOS ---
-      const combined = new Map<string, CitedPlayer>()
-      
-      resA.data?.forEach(m => {
-          combined.set(m.user_id, { ...m, teamName: matchRes.data!.team_a.name })
-      })
-      
-      resB.data?.forEach(m => {
-          if (combined.has(m.user_id)) {
-              const existing = combined.get(m.user_id)!
-              existing.isBothTeams = true
-              combined.set(m.user_id, existing)
-          } else {
-              combined.set(m.user_id, { ...m, teamName: matchRes.data!.team_b.name })
-          }
-      })
-      
-      setCitedPlayers(Array.from(combined.values()))
-
-      const chatRes = await chatService.getMessages(matchId)
-      if (chatRes.data) setMessages(chatRes.data)
-    } catch (e) {
-      console.error('Error initializing match:', e)
-      showToast('Error al cargar el partido', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function handleSendText() {
     if (!inputText.trim() || !myTeamId || !match) return
@@ -482,307 +474,51 @@ export default function MatchScreen() {
           {/* PREVIA STATE */}
           {matchState === 'previa' && (
             <View className="flex-1">
-              {/* Match Header */}
-              <View className="bg-card m-4 rounded-xl border border-border overflow-hidden">
-                <View className="bg-primary/5 p-4 flex-row items-center justify-between">
-                  <View className="items-center gap-2 w-1/3">
-                    <View className="w-14 h-14 bg-secondary rounded-xl items-center justify-center border border-border overflow-hidden">
-                      {myTeam.logo_url ? (
-                        <Image
-                          source={{ uri: myTeam.logo_url }}
-                          className="w-full h-full"
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <Shield size={28} color="#A1A1AA" strokeWidth={2} />
-                      )}
-                    </View>
-                    <Text className="text-foreground font-bold text-xs text-center" numberOfLines={1}>
-                      {myTeam.name}
-                    </Text>
-                  </View>
+              <MatchHeader 
+                match={match}
+                myTeam={myTeam}
+                rivalTeam={rivalTeam}
+                formatTime={formatTime}
+              />
 
-                  <View className="items-center">
-                    <Text className="text-4xl font-title text-primary tracking-wide">
-                      {match.scheduled_at ? formatTime(match.scheduled_at) : '--:--'}
-                    </Text>
-                    <Text className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider mt-1">
-                      HORA
-                    </Text>
-                  </View>
-
-                  <View className="items-center gap-2 w-1/3">
-                    <View className="w-14 h-14 bg-secondary rounded-xl items-center justify-center border border-border overflow-hidden">
-                      {rivalTeam.logo_url ? (
-                        <Image
-                          source={{ uri: rivalTeam.logo_url }}
-                          className="w-full h-full"
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <Shield size={28} color="#A1A1AA" strokeWidth={2} />
-                      )}
-                    </View>
-                    <Text className="text-foreground font-bold text-xs text-center" numberOfLines={1}>
-                      {rivalTeam.name}
-                    </Text>
-                  </View>
-                </View>
-
-                {match.venue?.name && (
-                  <View className="p-3 bg-card border-t border-border flex-row items-center justify-center gap-2">
-                    <MapPin size={14} color="#00D54B" strokeWidth={2} />
-                    <Text className="text-muted-foreground text-xs font-medium">
-                      {match.venue.name}
-                    </Text>
-                  </View>
-                )}
-
-                {match.scheduled_at && (
-                  <View className="p-2 bg-secondary border-t border-border flex-row items-center justify-center gap-2">
-                    <Calendar size={12} color="#A1A1AA" strokeWidth={2} />
-                    <Text className="text-muted-foreground text-[11px]">
-                      {new Date(match.scheduled_at).toLocaleDateString('es-AR', {
-                        weekday: 'long',
-                        day: '2-digit',
-                        month: 'long',
-                      })}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Tabs */}
-              <View className="flex-row mx-4 bg-secondary p-1 rounded-xl mb-3 border border-border">
-                {(['chat', 'lineup', 'details'] as TabState[]).map((tab) => (
-                  <TouchableOpacity
-                    key={tab}
-                    onPress={() => setActiveTab(tab)}
-                    className={`flex-1 py-2.5 rounded-lg items-center ${activeTab === tab ? 'bg-card border border-primary/40' : ''
-                      }`}
-                  >
-                    <Text
-                      className={`text-xs font-bold uppercase ${activeTab === tab ? 'text-primary' : 'text-muted-foreground'
-                        }`}
-                    >
-                      {tab === 'lineup' ? 'Citados' : tab === 'details' ? 'Detalles' : 'Chat'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <MatchTabs 
+                activeTab={activeTab}
+                onTabPress={setActiveTab}
+              />
 
               {/* Tab Content */}
               <View className="flex-1">
                 {activeTab === 'chat' && (
-                  <>
-                    <FlatList
-                      ref={flatListRef}
-                      data={messages}
-                      keyExtractor={(item) => item.id}
-                      renderItem={({ item }) => (
-                        <ChatMessageItem
-                          item={item}
-                          myTeamId={myTeamId}
-                          myTeam={myTeam}
-                          rivalTeam={rivalTeam}
-                          canManage={canManage}
-                          onAccept={handleAcceptProposal}
-                          onReject={handleRejectProposal}
-                          onCancel={handleCancelProposal}
-                        />
-                      )}
-                      inverted
-                      contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
-                      showsVerticalScrollIndicator={false}
-                    />
-
-                    <View
-                      className="px-3 py-3 bg-card border-t-2 border-border flex-row items-end gap-3"
-                      style={{ paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 12 }}
-                    >
-                      {canManage ? (
-                        <>
-                          <TouchableOpacity
-                            onPress={() => setShowProposalModal(true)}
-                            className="h-12 w-12 items-center justify-center bg-warning/20 rounded-lg border border-warning/30 active:bg-warning/30"
-                          >
-                            <Calendar size={22} color="#EAB308" strokeWidth={2} />
-                          </TouchableOpacity>
-
-                          <TextInput
-                            className="flex-1 bg-background text-foreground min-h-[48px] max-h-[120px] px-4 py-3 rounded-2xl border-2 border-border focus:border-primary"
-                            placeholder="Escribe un mensaje..."
-                            placeholderTextColor="#6B7280"
-                            value={inputText}
-                            onChangeText={setInputText}
-                            onSubmitEditing={() => {
-                              handleSendText()
-                              Keyboard.dismiss()
-                            }}
-                            returnKeyType="send"
-                            multiline
-                            textAlignVertical="center"
-                            blurOnSubmit={false}
-                          />
-
-                          <TouchableOpacity
-                            onPress={() => {
-                              handleSendText()
-                              Keyboard.dismiss()
-                            }}
-                            disabled={!inputText.trim()}
-                            className={`h-12 w-12 items-center justify-center rounded-full ${inputText.trim() ? 'bg-primary active:bg-primary/80' : 'bg-muted'
-                              }`}
-                          >
-                            <Send
-                              size={20}
-                              color={inputText.trim() ? '#121217' : '#6B7280'}
-                              strokeWidth={2.5}
-                            />
-                          </TouchableOpacity>
-                        </>
-                      ) : (
-                        <View className="flex-1 bg-muted/30 px-4 py-3 rounded-2xl border-2 border-dashed border-border flex-row items-center justify-center gap-3">
-                          <Lock size={16} color="#A1A1AA" />
-                          <Text className="text-muted-foreground text-xs">
-                            Solo capitanes pueden negociar y enviar mensajes
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </>
+                  <ChatSection
+                    messages={messages}
+                    flatListRef={flatListRef}
+                    myTeamId={myTeamId}
+                    myTeam={myTeam}
+                    rivalTeam={rivalTeam}
+                    canManage={canManage}
+                    inputText={inputText}
+                    setInputText={setInputText}
+                    insets={insets}
+                    onSendText={handleSendText}
+                    onAcceptProposal={handleAcceptProposal}
+                    onRejectProposal={handleRejectProposal}
+                    onCancelProposal={handleCancelProposal}
+                    onShowProposalModal={() => setShowProposalModal(true)}
+                  />
                 )}
 
                 {activeTab === 'details' && (
-                  <ScrollView className="p-4" contentContainerStyle={{ paddingBottom: 40 }}>
-                    {/* Solo mostrar detalles si el partido está confirmado */}
-                    {match.status === 'CONFIRMED' ? (
-                      <>
-                        <View className="bg-card rounded-xl border border-border p-4 gap-2">
-                          <DetailRow
-                            label="Tipo"
-                            value={match.is_friendly ? 'Amistoso' : 'Por los Puntos'}
-                            highlight
-                          />
-                          <DetailRow label="Modalidad" value="Fútbol 5" />
-                          <DetailRow label="Duración" value="60 minutos" />
-                          {match.venue?.name && (
-                            <DetailRow label="Sede" value={match.venue.name} />
-                          )}
-                        </View>
-
-                        <View className="bg-card rounded-xl border border-border p-4 mt-4">
-                          <View className="flex-row justify-between items-center mb-4 border-b border-border pb-2">
-                            <Text className="text-foreground font-bold">Estado de Cancha</Text>
-                            <Text className="text-primary text-xs font-bold uppercase">Reservada</Text>
-                          </View>
-                          <View className="flex-row items-center gap-3">
-                            <View className="w-10 h-10 rounded-lg items-center justify-center bg-primary/20">
-                              <CheckCircle2
-                                size={22}
-                                color="#00D54B"
-                                strokeWidth={2}
-                              />
-                            </View>
-                            <View className="flex-1">
-                              <Text className="text-foreground font-bold">Reserva de Cancha</Text>
-                              <Text className="text-muted-foreground text-xs mt-0.5">
-                                Confirmada
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-
-                        {canManage && (
-                          <View className="gap-3 mt-6">
-                            <Button 
-                              title="Gestionar Reserva / Cambiar Detalles"
-                              variant="secondary"
-                              icon={<Pencil size={18} color="#FBFBFB" />}
-                              onPress={() => setShowEditModal(true)}
-                            />
-                            {canCancelMatch() && (
-                              <Button 
-                                title="Cancelar Partido (24hs mínimo)"
-                                variant="secondary"
-                                icon={<X size={18} color="#FBFBFB" />}
-                                onPress={handleCancelMatch}
-                              />
-                            )}
-                          </View>
-                        )}
-                      </>
-                    ) : (
-                      <View className="flex-1 items-center justify-center py-20">
-                        <View className="w-16 h-16 bg-card rounded-2xl items-center justify-center mb-4 border border-border">
-                          <Calendar size={32} color="#A1A1AA" strokeWidth={2} />
-                        </View>
-                        <Text className="text-foreground font-bold text-lg mb-2 text-center">
-                          Pendiente de Confirmación
-                        </Text>
-                        <Text className="text-muted-foreground text-center text-sm leading-5 px-6">
-                          Los detalles del partido aparecerán una vez que se confirme la fecha y hora
-                        </Text>
-                      </View>
-                    )}
-                  </ScrollView>
+                  <DetailsView
+                    match={match}
+                    canManage={canManage}
+                    canCancelMatch={canCancelMatch}
+                    onEditMatch={() => setShowEditModal(true)}
+                    onCancelMatch={handleCancelMatch}
+                  />
                 )}
 
                 {activeTab === 'lineup' && (
-                  <ScrollView className="p-4" contentContainerStyle={{ paddingBottom: 40 }}>
-                    <View className="bg-card rounded-xl border border-border p-4">
-                      <View className="flex-row justify-between items-center mb-4 pb-3 border-b border-border">
-                        <Text className="text-foreground font-bold text-lg">Jugadores Citados</Text>
-                        <View className="bg-primary/10 px-3 py-1.5 rounded-full">
-                          <Text className="text-primary text-xs font-bold">
-                            {citedPlayers.length} Citados
-                          </Text>
-                        </View>
-                      </View>
-
-                      {citedPlayers.map((member, index) => (
-                        <View
-                          key={member.user_id}
-                          className={`flex-row items-center justify-between py-3 ${index !== citedPlayers.length - 1 ? 'border-b border-border/50' : ''
-                            }`}
-                        >
-                          <View className="flex-row items-center gap-3 flex-1 min-w-0">
-                            <View className="w-10 h-10 bg-secondary rounded-full items-center justify-center border border-border overflow-hidden">
-                              {member.profile?.avatar_url ? (
-                                <Image
-                                  source={{ uri: member.profile.avatar_url }}
-                                  className="w-full h-full"
-                                  resizeMode="cover"
-                                />
-                              ) : (
-                                <Shield size={20} color="#A1A1AA" strokeWidth={2} />
-                              )}
-                            </View>
-                            <View className="flex-1 min-w-0">
-                                <Text className="text-foreground font-medium" numberOfLines={1}>
-                                {member.profile?.full_name || member.profile?.username}
-                                </Text>
-                                <Text className="text-muted-foreground text-[10px]" numberOfLines={1}>
-                                    {member.teamName}
-                                </Text>
-                            </View>
-                          </View>
-
-                          {member.isBothTeams ? (
-                              <View className="flex-row items-center gap-1.5 bg-warning/10 px-2.5 py-1 rounded-full border border-warning/20">
-                                <AlertTriangle size={10} color="#EAB308" />
-                                <Text className="text-warning text-[9px] font-bold uppercase">Juega en Ambos</Text>
-                              </View>
-                          ) : (
-                              <View className="flex-row items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full">
-                                <Check size={12} color="#00D54B" strokeWidth={3} />
-                                <Text className="text-primary text-[10px] font-bold uppercase">Confirmado</Text>
-                              </View>
-                          )}
-                        </View>
-                      ))}
-                    </View>
-                  </ScrollView>
+                  <LineupView citedPlayers={citedPlayers} />
                 )}
               </View>
             </View>
@@ -790,200 +526,32 @@ export default function MatchScreen() {
 
           {/* CHECKIN STATE */}
           {matchState === 'checkin' && (
-            <ScrollView
-              className="flex-1"
-              contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: 'center' }}
-            >
-              <View
-                className={`w-40 h-40 self-center rounded-full items-center justify-center mb-8 border-4 ${gpsDistance <= 100
-                    ? 'bg-primary/20 border-primary'
-                    : 'bg-card border-border'
-                  }`}
-              >
-                {checkedIn ? (
-                  <Check size={64} color="#00D54B" strokeWidth={3} />
-                ) : (
-                  <Navigation size={64} color={gpsDistance <= 100 ? '#00D54B' : '#6B7280'} />
-                )}
-              </View>
-
-              <Text className="text-foreground text-3xl font-bold text-center mb-3">
-                {checkedIn ? '¡Ya estás listo!' : `A ${gpsDistance}m`}
-              </Text>
-              <Text className="text-muted-foreground text-center mb-12 px-4 leading-6">
-                {checkedIn
-                  ? 'Esperando al resto del equipo. El partido comenzará pronto.'
-                  : gpsDistance <= 100
-                    ? 'Estás en zona. Confirma tu presencia.'
-                    : 'Acércate más a la sede para hacer check-in.'}
-              </Text>
-
-              {!checkedIn && (
-                <Button
-                  title="HACER CHECK-IN"
-                  onPress={() => setCheckedIn(true)}
-                  disabled={gpsDistance > 100}
-                  className="w-full h-14 mb-4"
-                  variant="primary"
-                />
-              )}
-
-              {__DEV__ && (
-                <View className="flex-row gap-4 mb-8 opacity-40">
-                  <Button
-                    title="-50m"
-                    variant="secondary"
-                    onPress={() => setGpsDistance((d) => Math.max(0, d - 50))}
-                  />
-                  <Button
-                    title="+50m"
-                    variant="secondary"
-                    onPress={() => setGpsDistance((d) => d + 50)}
-                  />
-                </View>
-              )}
-
-              {checkedIn && canManage && (
-                <Button
-                  title="Terminar Partido (Demo)"
-                  variant="secondary"
-                  onPress={() => setMatchState('postmatch')}
-                  className="w-full mb-4"
-                />
-              )}
-
-              <TouchableOpacity
-                className="mt-4 flex-row items-center justify-center gap-2 bg-destructive/10 p-4 rounded-xl border border-destructive/30 active:bg-destructive/20"
-                onPress={() => setShowWOModal(true)}
-              >
-                <AlertTriangle size={16} color="#D93036" strokeWidth={2} />
-                <Text className="text-destructive text-xs font-bold uppercase">
-                  Reportar Ausencia (W.O.)
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
+            <CheckinSection
+              gpsDistance={gpsDistance}
+              setGpsDistance={setGpsDistance}
+              checkedIn={checkedIn}
+              setCheckedIn={setCheckedIn}
+              canManage={canManage}
+              setMatchState={setMatchState}
+              setShowWOModal={setShowWOModal}
+            />
           )}
 
           {/* POSTMATCH STATE */}
           {matchState === 'postmatch' && (
-            <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 40 }}>
-              <View className="bg-card rounded-xl border border-border p-6 mb-6">
-                <Text className="text-foreground text-lg font-bold mb-6 text-center">
-                  Resultado Final
-                </Text>
-
-                <View className="flex-row items-center justify-between">
-                  <View className="items-center w-1/3 gap-2">
-                    <View className="w-16 h-16 bg-secondary rounded-xl items-center justify-center border border-border overflow-hidden">
-                      {myTeam.logo_url ? (
-                        <Image
-                          source={{ uri: myTeam.logo_url }}
-                          className="w-full h-full"
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <Shield size={32} color="#A1A1AA" strokeWidth={2} />
-                      )}
-                    </View>
-                    <Text className="text-foreground font-bold text-center text-xs" numberOfLines={2}>
-                      {myTeam.name}
-                    </Text>
-                  </View>
-
-                  <View className="flex-row items-center gap-4">
-                    <View className="items-center gap-3">
-                      <TouchableOpacity
-                        onPress={() => setHomeScore((s) => Math.min(s + 1, 99))}
-                        className="bg-secondary p-2 rounded-lg border border-border active:bg-muted"
-                      >
-                        <Plus size={18} color="#FBFBFB" strokeWidth={2} />
-                      </TouchableOpacity>
-                      <Text className="text-6xl font-title text-foreground">{homeScore}</Text>
-                      <TouchableOpacity
-                        onPress={() => setHomeScore((s) => Math.max(s - 1, 0))}
-                        className="bg-secondary p-2 rounded-lg border border-border active:bg-muted"
-                      >
-                        <Minus size={18} color="#FBFBFB" strokeWidth={2} />
-                      </TouchableOpacity>
-                    </View>
-
-                    <Text className="text-muted-foreground text-3xl mb-8">-</Text>
-
-                    <View className="items-center gap-3">
-                      <TouchableOpacity
-                        onPress={() => setAwayScore((s) => Math.min(s + 1, 99))}
-                        className="bg-secondary p-2 rounded-lg border border-border active:bg-muted"
-                      >
-                        <Plus size={18} color="#FBFBFB" strokeWidth={2} />
-                      </TouchableOpacity>
-                      <Text className="text-6xl font-title text-foreground">{awayScore}</Text>
-                      <TouchableOpacity
-                        onPress={() => setAwayScore((s) => Math.max(s - 1, 0))}
-                        className="bg-secondary p-2 rounded-lg border border-border active:bg-muted"
-                      >
-                        <Minus size={18} color="#FBFBFB" strokeWidth={2} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  <View className="items-center w-1/3 gap-2">
-                    <View className="w-16 h-16 bg-secondary rounded-xl items-center justify-center border border-border overflow-hidden">
-                      {rivalTeam.logo_url ? (
-                        <Image
-                          source={{ uri: rivalTeam.logo_url }}
-                          className="w-full h-full"
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <Shield size={32} color="#A1A1AA" strokeWidth={2} />
-                      )}
-                    </View>
-                    <Text className="text-foreground font-bold text-center text-xs" numberOfLines={2}>
-                      {rivalTeam.name}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View className="bg-card rounded-xl border border-border p-4 mb-8">
-                <Text className="text-foreground font-bold mb-4 text-lg">⭐ Figura del Partido</Text>
-                <View className="flex-row flex-wrap gap-3">
-                  {teamMembers.map((member) => (
-                    <TouchableOpacity
-                      key={member.user_id}
-                      onPress={() => setSelectedMVP(member.user_id)}
-                      className={`items-center w-[22%] p-3 rounded-xl border-2 ${selectedMVP === member.user_id
-                          ? 'bg-primary/10 border-primary'
-                          : 'bg-secondary border-transparent'
-                        }`}
-                    >
-                      <View className="w-12 h-12 bg-card rounded-full items-center justify-center border border-border overflow-hidden mb-2">
-                        {member.profile?.avatar_url ? (
-                          <Image
-                            source={{ uri: member.profile.avatar_url }}
-                            className="w-full h-full"
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <Shield size={24} color="#A1A1AA" strokeWidth={2} />
-                        )}
-                      </View>
-                      <Text className="text-foreground text-[10px] text-center" numberOfLines={1}>
-                        {member.profile?.full_name?.split(' ')[0] || 'Jugador'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <Button
-                title="ENVIAR RESULTADO"
-                className="w-full h-14"
-                variant="primary"
-                onPress={handleSubmitResult}
-                style={{ marginBottom: insets.bottom + 20 }}
-              />
-            </ScrollView>
+            <PostmatchSection
+              myTeam={myTeam}
+              rivalTeam={rivalTeam}
+              teamMembers={teamMembers}
+              homeScore={homeScore}
+              setHomeScore={setHomeScore}
+              awayScore={awayScore}
+              setAwayScore={setAwayScore}
+              selectedMVP={selectedMVP}
+              setSelectedMVP={setSelectedMVP}
+              onSubmitResult={handleSubmitResult}
+              insets={insets}
+            />
           )}
         </View>
 
@@ -1211,275 +779,5 @@ export default function MatchScreen() {
         </Modal>
       </KeyboardAvoidingView>
     </>
-  )
-}
-
-// --- COMPONENTS ---
-
-const DetailRow = ({
-  label,
-  value,
-  highlight,
-}: {
-  label: string
-  value: string
-  highlight?: boolean
-}) => (
-  <View className="flex-row justify-between items-center py-2.5 border-b border-border/30">
-    <Text className="text-muted-foreground">{label}</Text>
-    <Text className={`font-bold ${highlight ? 'text-primary' : 'text-foreground'}`}>{value}</Text>
-  </View>
-)
-
-const ChatMessageItem = ({
-  item,
-  myTeamId,
-  myTeam,
-  rivalTeam,
-  canManage,
-  onAccept,
-  onReject,
-  onCancel,
-}: {
-  item: ChatMessage
-  myTeamId: string
-  myTeam: any
-  rivalTeam: any
-  canManage: boolean
-  onAccept: (msg: ChatMessage) => void
-  onReject: (msg: ChatMessage) => void
-  onCancel: (msg: ChatMessage) => void
-}) => {
-  const isMe = item.sender_team_id === myTeamId
-  const sender = isMe ? myTeam : rivalTeam
-
-  const formatTime = (d: string) =>
-    new Date(d).toLocaleTimeString('es-AR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
-
-  if (item.type === 'PROPOSAL') {
-    const pData: any = item.proposal_data || {}
-    return (
-      <View className={`my-3 w-full flex-row ${isMe ? 'justify-end' : 'justify-start'}`}>
-        {!isMe && (
-          <View className="mr-2 justify-end pb-1">
-            <View className="w-8 h-8 bg-card rounded-full items-center justify-center border border-border overflow-hidden">
-              {sender?.logo_url ? (
-                <Image
-                  source={{ uri: sender.logo_url }}
-                  className="w-full h-full"
-                  resizeMode="cover"
-                />
-              ) : (
-                <Shield size={16} color="#A1A1AA" strokeWidth={2} />
-              )}
-            </View>
-          </View>
-        )}
-
-        <View className="max-w-[80%]">
-          {!isMe && (
-            <Text className="text-primary text-xs font-bold mb-1 ml-1">{sender?.name}</Text>
-          )}
-
-          <View
-            className={`rounded-2xl border-2 overflow-hidden shadow-lg ${
-              item.status === 'CANCELLED' 
-                ? 'border-destructive/30 opacity-60' 
-                : isMe ? 'border-border' : 'border-primary/40'
-            }`}
-          >
-            <View
-              className={`px-4 py-3 flex-row items-center justify-between ${
-                item.status === 'CANCELLED'
-                  ? 'bg-destructive/10'
-                  : isMe ? 'bg-secondary' : 'bg-primary/10'
-              }`}
-            >
-              <View className="flex-row items-center gap-2">
-                <Calendar size={16} color={item.status === 'CANCELLED' ? '#D93036' : isMe ? '#A1A1AA' : '#00D54B'} strokeWidth={2} />
-                <Text
-                  className={`text-xs font-bold uppercase tracking-wide ${
-                    item.status === 'CANCELLED'
-                      ? 'text-destructive'
-                      : isMe ? 'text-muted-foreground' : 'text-primary'
-                  }`}
-                >
-                  {item.status === 'CANCELLED' ? 'Propuesta Cancelada' : 'Propuesta de Partido'}
-                </Text>
-              </View>
-              
-              {item.status === 'ACCEPTED' && (
-                <View className="bg-primary/20 px-2 py-1 rounded-full flex-row items-center gap-1">
-                  <Check size={12} color="#00D54B" strokeWidth={3} />
-                  <Text className="text-primary text-[9px] font-bold uppercase">Confirmada</Text>
-                </View>
-              )}
-            </View>
-
-            {item.status !== 'CANCELLED' && (
-              <View className="bg-card p-4">
-                <View className="flex-row justify-between items-start mb-4">
-                  <View className="flex-1">
-                    <Text className="text-foreground text-xl font-bold mb-1">
-                      {pData.date ? new Date(pData.date + 'T00:00:00').toLocaleDateString('es-AR', {
-                        weekday: 'short',
-                        day: '2-digit',
-                        month: 'short',
-                      }) : 'Fecha TBA'}
-                    </Text>
-                    <View className="flex-row items-center gap-2 mb-2">
-                      <Clock size={14} color="#00D54B" strokeWidth={2} />
-                      <Text className="text-foreground font-medium">{pData.time ? pData.time + ' hs' : ''}</Text>
-                    </View>
-                    {pData.venue && (
-                      <View className="flex-row items-center gap-2">
-                        <MapPin size={12} color="#A1A1AA" strokeWidth={2} />
-                        <Text className="text-muted-foreground text-xs">{pData.venue}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View className="items-end gap-2">
-                    {pData.isFriendly !== undefined && (
-                      <View className={`px-3 py-1.5 rounded-full ${pData.isFriendly ? 'bg-blue-500/20' : 'bg-warning/20'}`}>
-                        <Text className={`text-xs font-bold uppercase ${pData.isFriendly ? 'text-blue-400' : 'text-warning'}`}>
-                          {pData.isFriendly ? '🤝 Amistoso' : '🏆 Por Puntos'}
-                        </Text>
-                      </View>
-                    )}
-                    {pData.modality && (
-                      <Text className="text-muted-foreground text-xs font-medium">
-                        {pData.modality} • {pData.duration}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-
-                {item.status === 'SENT' && !isMe && canManage && (
-                  <View className="flex-row gap-2 mt-2 pt-2 border-t border-border">
-                    <TouchableOpacity
-                      onPress={() => onReject(item)}
-                      className="flex-1 bg-destructive/20 py-2.5 rounded-lg border border-destructive/40 active:bg-destructive/30 flex-row items-center justify-center gap-1.5"
-                    >
-                      <X size={14} color="#D93036" strokeWidth={2.5} />
-                      <Text className="text-destructive font-bold text-xs">Rechazar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => onAccept(item)}
-                      className="flex-1 bg-primary py-2.5 rounded-lg active:bg-primary/80 flex-row items-center justify-center gap-1.5"
-                    >
-                      <Check size={14} color="#121217" strokeWidth={3} />
-                      <Text className="text-primary-foreground font-bold text-xs">Aceptar</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {item.status === 'SENT' && !isMe && !canManage && (
-                  <View className="mt-2 pt-2 border-t border-border">
-                    <View className="flex-row items-center justify-center gap-2 bg-muted/50 py-2 rounded-lg">
-                      <Lock size={12} color="#A1A1AA" strokeWidth={2} />
-                      <Text className="text-muted-foreground text-[10px] uppercase">
-                        Solo capitanes pueden responder
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                {item.status === 'ACCEPTED' && (
-                  <View className="mt-2 pt-2 border-t border-primary/30 flex-row items-center justify-center gap-2">
-                    <Check size={16} color="#00D54B" strokeWidth={3} />
-                    <Text className="text-primary font-bold text-xs">FECHA CONFIRMADA</Text>
-                  </View>
-                )}
-
-                {item.status === 'REJECTED' && (
-                  <View className="mt-2 pt-2 border-t border-destructive/30 flex-row items-center justify-center gap-2">
-                    <X size={16} color="#D93036" strokeWidth={3} />
-                    <Text className="text-destructive font-bold text-xs">PROPUESTA RECHAZADA</Text>
-                  </View>
-                )}
-
-                {item.status === 'SENT' && isMe && (
-                  <View className="mt-2 pt-2 border-t border-border gap-2">
-                    <Text className="text-muted-foreground text-xs italic text-center">
-                      Esperando respuesta...
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => onCancel(item)}
-                      className="bg-destructive/10 py-2 rounded-lg border border-destructive/30 active:bg-destructive/20 flex-row items-center justify-center gap-1.5"
-                    >
-                      <X size={14} color="#D93036" strokeWidth={2.5} />
-                      <Text className="text-destructive font-bold text-xs">Cancelar Propuesta</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {item.status === 'CANCELLED' && (
-              <View className="bg-card p-2">
-                <View className="mt-2 pt-2 border-t border-destructive/30 flex-row items-center justify-center gap-2">
-                  <X size={16} color="#D93036" strokeWidth={3} />
-                  <Text className="text-destructive font-bold text-xs">PROPUESTA CANCELADA POR REMITENTE</Text>
-                </View>
-              </View>
-            )}
-          </View>
-
-          <Text
-            className={`text-muted-foreground text-[10px] mt-1 ${isMe ? 'text-right mr-1' : 'ml-1'}`}
-          >
-            {formatTime(item.created_at)}
-          </Text>
-        </View>
-      </View>
-    )
-  }
-
-  return (
-    <View className={`my-1 flex-row ${isMe ? 'justify-end' : 'justify-start'}`}>
-      {!isMe && (
-        <View className="mr-2 justify-end pb-1">
-          <View className="w-8 h-8 bg-card rounded-full items-center justify-center border border-border overflow-hidden">
-            {sender?.logo_url ? (
-              <Image
-                source={{ uri: sender.logo_url }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            ) : (
-              <Shield size={16} color="#A1A1AA" strokeWidth={2} />
-            )}
-          </View>
-        </View>
-      )}
-
-      <View className="max-w-[75%]">
-        {!isMe && (
-          <Text className="text-primary text-xs font-bold mb-1 ml-1">{sender?.name}</Text>
-        )}
-
-        <View
-          className={`px-3 py-2 rounded-2xl ${isMe ? 'bg-secondary rounded-tr-sm' : 'bg-primary/90 rounded-tl-sm'
-            }`}
-        >
-          <Text
-            className={`text-base leading-5 ${isMe ? 'text-foreground' : 'text-primary-foreground font-medium'
-              }`}
-          >
-            {item.content}
-          </Text>
-          <Text
-            className={`text-[10px] mt-1 self-end ${isMe ? 'text-muted-foreground' : 'text-primary-foreground/60'
-              }`}
-          >
-            {formatTime(item.created_at)}
-          </Text>
-        </View>
-      </View>
-    </View>
   )
 }

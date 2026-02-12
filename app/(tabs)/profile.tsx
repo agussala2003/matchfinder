@@ -7,6 +7,7 @@ import { Alert, Image, Text, TouchableOpacity, View } from 'react-native'
 // Services & Context
 import { useToast } from '@/context/ToastContext'
 import { authService } from '@/services/auth.service'
+import { statsService } from '@/services/stats.service'
 import { storageService } from '@/services/storage.service'
 import { OutgoingRequest, teamsService } from '@/services/teams.service'
 import { UserProfile } from '@/types/auth'
@@ -29,8 +30,11 @@ export default function ProfileScreen() {
   const [myRequests, setMyRequests] = useState<OutgoingRequest[]>([])
 
   // UI States
+  // UI States
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+
+  const [userStats, setUserStats] = useState({ matches: 0, goals: 0, wins: 0, mvps: 0 })
 
   useFocusEffect(
     useCallback(() => {
@@ -53,6 +57,11 @@ export default function ProfileScreen() {
         if (resProfile.profile) setProfile(resProfile.profile)
         setTeams(resTeams.success && resTeams.data ? resTeams.data : [])
         setMyRequests(resRequests.success && resRequests.data ? resRequests.data : [])
+
+        const resStats = await statsService.getUserStats(userId)
+        if (resStats.success && resStats.data) {
+          setUserStats(resStats.data)
+        }
       }
     } catch (e) {
       console.error('Error cargando perfil', e)
@@ -122,7 +131,12 @@ export default function ProfileScreen() {
         {/* ESTADÍSTICAS */}
         <View className='gap-2'>
           <Text className='text-text-main font-title text-lg'>Estadísticas Totales</Text>
-          <StatsGrid />
+          <StatsGrid
+            matches={userStats.matches}
+            goals={userStats.goals}
+            wins={userStats.wins}
+            mvps={userStats.mvps}
+          />
         </View>
 
         {/* MIS EQUIPOS */}
@@ -139,7 +153,7 @@ export default function ProfileScreen() {
 
           <View className='gap-2'>
             {teams.length > 0 ? (
-              teams.map((item) => <TeamCard key={item.id} team={item} onCreatePress={() => {}} />)
+              teams.map((item) => <TeamCard key={item.id} team={item} onCreatePress={() => { }} />)
             ) : (
               <TeamCard team={null} onCreatePress={() => router.push('/create-team')} />
             )}

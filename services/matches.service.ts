@@ -8,7 +8,17 @@ export type MatchStatus =
   | 'FINISHED'
   | 'WO_A'
   | 'WO_B'
+  | 'WO_B'
   | 'CANCELLED'
+
+export interface MatchResult {
+  match_id: string
+  goals_a: number
+  goals_b: number
+  is_draw?: boolean
+  confirmed_by_a?: boolean
+  confirmed_by_b?: boolean
+}
 
 export interface MatchPreview {
   id: string
@@ -207,6 +217,77 @@ class MatchesService {
       return { success: false, error: (error as Error).message }
     }
   }
+
+  async saveMatchResult(result: MatchResult): Promise<ServiceResponse> {
+    try {
+      // Upsert into match_results
+      const { error } = await supabase
+        .from('match_results')
+        .upsert(result, { onConflict: 'match_id' })
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error saving match result:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  }
+  async getUserUpcomingMatches(userId: string): Promise<ServiceResponse<MatchPreview[]>> {
+    try {
+      // 1. Get user teams
+      const { data: teams } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', userId)
+        .eq('status', 'ACTIVE')
+
+      if (!teams || teams.length === 0) return { success: true, data: [] }
+
+      const teamIds = teams.map((t) => t.team_id)
+
+      // 2. Get matches for these teams
+      const { data, error } = await supabase
+        .from('matches')
+        .select(
+          `
+          id,
+          scheduled_at,
+          status,
+          is_friendly,
+          booking_confirmed,
+          team_a:teams!team_a_id (id, name, logo_url),
+          team_b:teams!team_b_id (id, name, logo_url)
+        `,
+        )
+        .or(`team_a_id.in.(${teamIds.join(',')}),team_b_id.in.(${teamIds.join(',')})`)
+        .in('status', ['CONFIRMED', 'LIVE'])
+        .gte('scheduled_at', new Date().toISOString()) // Only future matches
+        .order('scheduled_at', { ascending: true }) // Closest first
+
+      if (error) throw error
+
+      const matches: MatchPreview[] = (data || []).map((m: any) => {
+        const myTeamId = teamIds.find((id) => id === m.team_a.id || id === m.team_b.id)
+        const isHome = m.team_a.id === myTeamId // Approximation, actually implies relation to user's team
+
+        return {
+          id: m.id,
+          scheduled_at: m.scheduled_at,
+          status: m.status as MatchStatus,
+          is_friendly: m.is_friendly,
+          booking_confirmed: m.booking_confirmed,
+          my_role: isHome ? 'HOME' : 'AWAY',
+          rival: m.team_a.id === myTeamId ? m.team_b : m.team_a,
+          // last_message omitted for list view efficiency if not needed
+        }
+      })
+
+      return { success: true, data: matches }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  }
 }
+
 
 export const matchesService = new MatchesService()

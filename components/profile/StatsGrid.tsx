@@ -3,15 +3,24 @@ import { Target, TrendingUp, Trophy } from 'lucide-react-native'
 import React from 'react'
 import { Text, View } from 'react-native'
 
+interface StatsGridProps {
+  matches: number
+  goals: number
+  wins: number
+  mvps: number
+}
+
 // Falta cargar las estadisticas reales desde el backend
-export function StatsGrid() {
+export function StatsGrid({ matches, goals, wins, mvps }: StatsGridProps) {
   return (
-    <Card className='flex-row justify-between'>
-      <StatItem icon={<Trophy size={20} color='#FBBF24' />} value='0' label='Partidos' />
+    <Card className='flex-row justify-between py-4'>
+      <StatItem icon={<Trophy size={20} color='#FBBF24' />} value={wins.toString()} label='Victorias' />
       <View className='w-[1px] bg-border h-10 self-center' />
-      <StatItem icon={<Target size={20} color='#39FF14' />} value='0' label='Goles' />
+      <StatItem icon={<Target size={20} color='#39FF14' />} value={goals.toString()} label='Goles' />
       <View className='w-[1px] bg-border h-10 self-center' />
-      <StatItem icon={<TrendingUp size={20} color='#A855F7' />} value='1200' label='Elo' />
+      <StatItem icon={<TrendingUp size={20} color='#A855F7' />} value={matches.toString()} label='Partidos' />
+      <View className='w-[1px] bg-border h-10 self-center' />
+      <StatItem icon={<Trophy size={20} color='#EF4444' />} value={mvps.toString()} label='MVPs' />
     </Card>
   )
 }

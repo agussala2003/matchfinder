@@ -20,6 +20,8 @@ interface PostmatchSectionProps {
   setAwayScore: (fn: (s: number) => number) => void
   selectedMVP: string | null
   setSelectedMVP: (mvp: string | null) => void
+  playerGoals: Record<string, number>
+  setPlayerGoals: (fn: (prev: Record<string, number>) => Record<string, number>) => void
   onSubmitResult: () => void
   insets: { bottom: number }
 }
@@ -34,6 +36,8 @@ export const PostmatchSection = ({
   setAwayScore,
   selectedMVP,
   setSelectedMVP,
+  playerGoals,
+  setPlayerGoals,
   onSubmitResult,
   insets,
 }: PostmatchSectionProps) => (
@@ -120,29 +124,52 @@ export const PostmatchSection = ({
       <Text className="text-foreground font-bold mb-4 text-lg">⭐ Figura del Partido</Text>
       <View className="flex-row flex-wrap gap-3">
         {teamMembers.map((member) => (
-          <TouchableOpacity
-            key={member.user_id}
-            onPress={() => setSelectedMVP(member.user_id)}
-            className={`items-center w-[22%] p-3 rounded-xl border-2 ${selectedMVP === member.user_id
-                ? 'bg-primary/10 border-primary'
-                : 'bg-secondary border-transparent'
-              }`}
-          >
-            <View className="w-12 h-12 bg-card rounded-full items-center justify-center border border-border overflow-hidden mb-2">
-              {member.profile?.avatar_url ? (
-                <Image
-                  source={{ uri: member.profile.avatar_url }}
-                  className="w-full h-full"
-                  resizeMode="cover"
-                />
-              ) : (
-                <Shield size={24} color="#A1A1AA" strokeWidth={2} />
-              )}
+          <View key={member.user_id} className="w-[30%] items-center mb-4">
+            {/* Avatar/MVP Selection */}
+            <TouchableOpacity
+              onPress={() => setSelectedMVP(member.user_id)}
+              className={`items-center w-full p-2 rounded-xl border-2 mb-2 ${selectedMVP === member.user_id
+                  ? 'bg-primary/10 border-primary'
+                  : 'bg-secondary border-transparent'
+                }`}
+            >
+              <View className="w-10 h-10 bg-card rounded-full items-center justify-center border border-border overflow-hidden mb-1">
+                {member.profile?.avatar_url ? (
+                  <Image
+                    source={{ uri: member.profile.avatar_url }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Shield size={20} color="#A1A1AA" strokeWidth={2} />
+                )}
+              </View>
+              <Text className="text-foreground text-[10px] text-center" numberOfLines={1}>
+                {member.profile?.full_name?.split(' ')[0] || 'Jugador'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Goals Control */}
+            <View className="flex-row items-center gap-1 bg-card rounded-lg border border-border px-1">
+              <TouchableOpacity
+                onPress={() => setPlayerGoals(prev => ({ ...prev, [member.user_id]: Math.max((prev[member.user_id] || 0) - 1, 0) }))}
+                className="p-1"
+              >
+                <Minus size={12} color="#A1A1AA" />
+              </TouchableOpacity>
+
+              <Text className="text-foreground font-bold text-xs min-w-[12px] text-center">
+                {playerGoals[member.user_id] || 0}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => setPlayerGoals(prev => ({ ...prev, [member.user_id]: Math.min((prev[member.user_id] || 0) + 1, 20) }))}
+                className="p-1"
+              >
+                <Plus size={12} color="#00D54B" />
+              </TouchableOpacity>
             </View>
-            <Text className="text-foreground text-[10px] text-center" numberOfLines={1}>
-              {member.profile?.full_name?.split(' ')[0] || 'Jugador'}
-            </Text>
-          </TouchableOpacity>
+          </View>
         ))}
       </View>
     </View>

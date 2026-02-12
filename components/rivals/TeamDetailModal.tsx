@@ -25,6 +25,7 @@ interface TeamDetailModalProps {
   onChallenge: () => void
   onAccept: () => void
   onReject: () => void
+  onCancel: () => void
 
   relationship: ChallengeRelationship
 }
@@ -40,6 +41,7 @@ export function TeamDetailModal({
   onChallenge,
   onAccept,
   onReject,
+  onCancel,
   relationship,
 }: TeamDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'INFO' | 'MEMBERS'>('INFO')
@@ -207,6 +209,10 @@ export function TeamDetailModal({
                 disabled
                 className='opacity-50'
               />
+            )}
+
+            {relationship === 'CAN_CANCEL' && (
+              <Button title='Cancelar Desafío' variant='danger' onPress={onCancel} />
             )}
 
             {relationship === 'RECEIVED' && (

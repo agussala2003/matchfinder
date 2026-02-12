@@ -98,6 +98,59 @@ class MatchesService {
     }
   }
 
+  /**
+   * Verifica si hay un match activo entre dos equipos específicos
+   * Estados activos: PENDING, CONFIRMED, LIVE
+   * Estados terminados: FINISHED, WO_A, WO_B, CANCELLED
+   */
+  async getActiveMatchBetweenTeams(
+    teamAId: string,
+    teamBId: string,
+  ): Promise<ServiceResponse<MatchDetail | null>> {
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(
+          `
+          *,
+          team_a:teams!team_a_id (id, name, logo_url),
+          team_b:teams!team_b_id (id, name, logo_url),
+          venue:venues (id, name, address)
+        `,
+        )
+        .or(
+          `and(team_a_id.eq.${teamAId},team_b_id.eq.${teamBId}),and(team_a_id.eq.${teamBId},team_b_id.eq.${teamAId})`,
+        )
+        .in('status', ['PENDING', 'CONFIRMED', 'LIVE']) // Solo matches activos
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (error) throw error
+
+      if (!data) {
+        return { success: true, data: null }
+      }
+
+      const match: MatchDetail = {
+        id: data.id,
+        scheduled_at: data.scheduled_at,
+        status: data.status as MatchStatus,
+        is_friendly: data.is_friendly,
+        booking_confirmed: data.booking_confirmed,
+        wo_evidence_url: data.wo_evidence_url,
+        team_a: data.team_a,
+        team_b: data.team_b,
+        venue: data.venue,
+        season_id: data.season_id,
+      }
+
+      return { success: true, data: match }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  }
+
   async getMatchById(matchId: string): Promise<ServiceResponse<MatchDetail>> {
     try {
       const { data, error } = await supabase

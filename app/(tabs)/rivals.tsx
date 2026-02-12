@@ -4,6 +4,7 @@ import { useToast } from '@/context/ToastContext'
 import { ZONAS_AMBA } from '@/lib/constants'
 import { authService } from '@/services/auth.service'
 import { challengesService } from '@/services/challenges.service'
+import { MatchDetail, matchesService } from '@/services/matches.service'
 import { TeamMemberDetail, teamsService } from '@/services/teams.service'
 import { Challenge } from '@/types/challenges'
 import { UserRole } from '@/types/core'
@@ -24,6 +25,7 @@ export default function RivalsScreen() {
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null)
   const [rivals, setRivals] = useState<Team[]>([])
   const [myChallenges, setMyChallenges] = useState<Challenge[]>([])
+  const [activeMatches, setActiveMatches] = useState<Map<string, MatchDetail>>(new Map()) // Cache de matches activos
 
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -86,19 +88,50 @@ export default function RivalsScreen() {
     setCanManage(me?.role === UserRole.ADMIN || me?.role === UserRole.SUB_ADMIN)
   }
 
-  async function fetchRivals(teamId: string, query?: string, zone?: string) {
-    //Actualizar a 5 con casos de prueba mas pronto
-    const res = await challengesService.searchRivals(teamId, query, zone)
-    if (res.data) {
-      const validRivals = res.data.filter((t: any) => (t.member_count || 0) >= 2)
-      setRivals(validRivals)
-    }
-  }
+  const fetchRivals = useCallback(
+    async (teamId: string, query?: string, zone?: string) => {
+      //Actualizar a 5 con casos de prueba mas pronto
+      const res = await challengesService.searchRivals(teamId, query, zone)
+      if (res.data) {
+        const validRivals = res.data.filter((t: any) => (t.member_count || 0) >= 2)
+        setRivals(validRivals)
+      }
+    },
+    []
+  )
 
-  async function fetchChallenges(teamId: string) {
+  const fetchChallenges = useCallback(async (teamId: string) => {
     const res = await challengesService.getMyChallenges(teamId)
-    if (res.data) setMyChallenges(res.data.filter((c) => c.status !== 'CANCELLED'))
-  }
+    if (res.data) {
+      setMyChallenges(res.data.filter((c) => c.status !== 'CANCELLED'))
+      // Cargar matches activos para challenges aceptados
+      await loadActiveMatches(teamId, res.data.filter((c) => c.status === 'ACCEPTED'))
+    }
+  }, [])
+
+  /**
+   * Carga matches activos para challenges aceptados
+   */
+  const loadActiveMatches = useCallback(
+    async (teamId: string, acceptedChallenges: Challenge[]) => {
+      const newMatches = new Map<string, MatchDetail>()
+
+      for (const challenge of acceptedChallenges) {
+        const otherTeamId =
+          challenge.challenger_team_id === teamId
+            ? challenge.target_team_id
+            : challenge.challenger_team_id
+
+        const matchRes = await matchesService.getActiveMatchBetweenTeams(teamId, otherTeamId)
+        if (matchRes.success && matchRes.data) {
+          newMatches.set(otherTeamId, matchRes.data)
+        }
+      }
+
+      setActiveMatches(newMatches)
+    },
+    []
+  )
 
   async function fetchTeamMembers(teamId: string) {
     try {
@@ -126,6 +159,16 @@ export default function RivalsScreen() {
     if (!currentTeam) return
     if (!canManage) return showToast('Solo capitanes pueden desafiar', 'error')
 
+    // Verificar si se puede enviar nuevo challenge
+    const canSendRes = await challengesService.canSendNewChallenge(currentTeam.id, teamId)
+    if (!canSendRes.success) {
+      return showToast(canSendRes.error || 'Error al verificar', 'error')
+    }
+
+    if (!canSendRes.data) {
+      return showToast('Ya hay un desafío o partido activo con este equipo', 'error')
+    }
+
     const res = await challengesService.sendChallenge(currentTeam.id, teamId)
     if (res.success) {
       showToast('Desafío enviado', 'success')
@@ -148,20 +191,58 @@ export default function RivalsScreen() {
     }
   }
 
+  /**
+   * Cancela un challenge propio (solo si está PENDING)
+   */
+  async function handleCancelChallenge(challengeId: string) {
+    const res = await challengesService.cancelChallenge(challengeId)
+    if (res.success) {
+      showToast('Desafío cancelado', 'info')
+      setShowDetail(false)
+      if (currentTeam) {
+        fetchChallenges(currentTeam.id)
+        fetchRivals(currentTeam.id, searchQuery, selectedZone)
+      }
+    } else {
+      showToast('Error al cancelar', 'error')
+    }
+  }
+
   // --- HELPERS ---
   const getRelationship = (otherTeamId: string): ChallengeRelationship => {
     if (!currentTeam) return 'NONE'
+    
+    // 1. Verificar si hay match activo - prioridad máxima
+    const activeMatch = activeMatches.get(otherTeamId)
+    if (activeMatch) {
+      return 'ACCEPTED' // Hay match activo → mostrar check verde
+    }
+    
+    // 2. Buscar el challenge más reciente entre estos equipos
     const challenge = myChallenges.find(
       (c) =>
         (c.target_team_id === otherTeamId || c.challenger_team_id === otherTeamId) &&
         c.status !== 'CANCELLED',
     )
-    if (!challenge) return 'NONE'
-    if (challenge.status === 'ACCEPTED') return 'ACCEPTED'
-    if (challenge.status === 'PENDING') {
-      return challenge.challenger_team_id === currentTeam.id ? 'SENT' : 'RECEIVED'
+    
+    if (!challenge) return 'NONE' // No hay historial → botón +
+    
+    // 3. Si hay challenge pero no match activo, verificar estado
+    switch (challenge.status) {
+      case 'PENDING':
+        // Si soy el que envió el challenge Y puedo gestionar → permitir cancelar
+        if (challenge.challenger_team_id === currentTeam.id && canManage) {
+          return 'CAN_CANCEL'
+        }
+        return challenge.challenger_team_id === currentTeam.id ? 'SENT' : 'RECEIVED'
+      case 'ACCEPTED':
+        // Challenge aceptado pero NO hay match activo → match ya terminó
+        return 'NONE' // Permitir nuevo challenge
+      case 'REJECTED':
+        return 'NONE' // Challenge rechazado → permitir nuevo
+      default:
+        return 'NONE'
     }
-    return 'NONE'
   }
 
   const getActiveChallengeId = (otherTeamId: string) => {
@@ -295,6 +376,9 @@ export default function RivalsScreen() {
         }
         onReject={() =>
           selectedRival && handleRespondChallenge(getActiveChallengeId(selectedRival.id)!, false)
+        }
+        onCancel={() =>
+          selectedRival && handleCancelChallenge(getActiveChallengeId(selectedRival.id)!)
         }
         relationship={selectedRival ? getRelationship(selectedRival.id) : 'NONE'}
       />

@@ -1,11 +1,11 @@
 import { Avatar } from '@/components/ui/Avatar'
 import { Card } from '@/components/ui/Card'
 import { Team } from '@/types/teams'
-import { Check, Clock, MapPin, Plus } from 'lucide-react-native'
+import { Check, Clock, MapPin, Plus, X } from 'lucide-react-native'
 import React from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 
-export type ChallengeRelationship = 'NONE' | 'SENT' | 'RECEIVED' | 'ACCEPTED'
+export type ChallengeRelationship = 'NONE' | 'SENT' | 'RECEIVED' | 'ACCEPTED' | 'CAN_CANCEL'
 
 interface RivalCardProps {
   team: Team
@@ -35,6 +35,8 @@ export function RivalCard({
         )
       case 'ACCEPTED':
         return <Check size={20} color='#39FF14' />
+      case 'CAN_CANCEL':
+        return <X size={20} color='#EF4444' strokeWidth={2.5} />
       case 'NONE':
       default:
         return <Plus size={20} color='#fff' strokeWidth={2.5} />

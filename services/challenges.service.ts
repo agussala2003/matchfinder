@@ -51,32 +51,37 @@ class ChallengesService {
 
   async sendChallenge(challengerId: string, targetId: string): Promise<ServiceResponse> {
     try {
-      // 1. Buscar si YA existe un historial entre estos dos equipos
-      // (Buscamos A vs B  O  B vs A)
+      // 1. Verificar si se puede enviar nuevo challenge usando la nueva validación
+      const canSendRes = await this.canSendNewChallenge(challengerId, targetId)
+      if (!canSendRes.success) {
+        return { success: false, error: canSendRes.error }
+      }
+
+      if (!canSendRes.data) {
+        return { success: false, error: 'Ya existe un desafío o partido activo' }
+      }
+
+      // 2. Buscar si existe un challenge previo (para reactivar o crear nuevo)
       const { data: existing } = await supabase
         .from('challenges')
         .select('*')
         .or(
           `and(challenger_team_id.eq.${challengerId},target_team_id.eq.${targetId}),and(challenger_team_id.eq.${targetId},target_team_id.eq.${challengerId})`,
         )
+        .in('status', ['REJECTED', 'CANCELLED', 'ACCEPTED']) // Solo challenges no activos
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
-      // 2. Si existe...
       if (existing) {
-        // Si ya está activo, no hacemos nada (protección)
-        if (existing.status === 'PENDING' || existing.status === 'ACCEPTED') {
-          return { success: false, error: 'Ya existe un desafío activo' }
-        }
-
-        // Si estaba RECHAZADO o CANCELADO, lo "Revivimos"
-        // Importante: Actualizamos quién desafía ahora (challenger_team_id)
+        // Reactivar challenge existente con nueva información
         const { error: updateError } = await supabase
           .from('challenges')
           .update({
             status: 'PENDING',
             challenger_team_id: challengerId,
             target_team_id: targetId,
-            created_at: new Date().toISOString(), // Refrescamos la fecha
+            created_at: new Date().toISOString(), // Refrescar fecha
           })
           .eq('id', existing.id)
 
@@ -84,7 +89,7 @@ class ChallengesService {
         return { success: true }
       }
 
-      // 3. Si NO existe, creamos uno nuevo (Insert normal)
+      // 3. Crear nuevo challenge
       const { error } = await supabase.from('challenges').insert({
         challenger_team_id: challengerId,
         target_team_id: targetId,
@@ -93,6 +98,69 @@ class ChallengesService {
 
       if (error) throw error
       return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  }
+
+  /**
+   * Cancela un challenge propio (solo si está PENDING)
+   */
+  async cancelChallenge(challengeId: string): Promise<ServiceResponse> {
+    try {
+      const { error } = await supabase
+        .from('challenges')
+        .update({ status: 'CANCELLED' })
+        .eq('id', challengeId)
+        .eq('status', 'PENDING') // Solo se puede cancelar si está pending
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  }
+
+  /**
+   * Verifica si se puede enviar un nuevo challenge entre dos equipos
+   * Criterios:
+   * - No hay challenge PENDING entre ellos
+   * - No hay match ACTIVO entre ellos
+   */
+  async canSendNewChallenge(
+    challengerTeamId: string,
+    targetTeamId: string,
+  ): Promise<ServiceResponse<boolean>> {
+    try {
+      // 1. Verificar si hay challenge PENDING
+      const { data: pendingChallenge } = await supabase
+        .from('challenges')
+        .select('id')
+        .or(
+          `and(challenger_team_id.eq.${challengerTeamId},target_team_id.eq.${targetTeamId}),and(challenger_team_id.eq.${targetTeamId},target_team_id.eq.${challengerTeamId})`,
+        )
+        .eq('status', 'PENDING')
+        .maybeSingle()
+
+      if (pendingChallenge) {
+        return { success: true, data: false } // No se puede, hay challenge pending
+      }
+
+      // 2. Verificar si hay match ACTIVO
+      const { data: activeMatch } = await supabase
+        .from('matches')
+        .select('id')
+        .or(
+          `and(team_a_id.eq.${challengerTeamId},team_b_id.eq.${targetTeamId}),and(team_a_id.eq.${targetTeamId},team_b_id.eq.${challengerTeamId})`,
+        )
+        .in('status', ['PENDING', 'CONFIRMED', 'LIVE'])
+        .maybeSingle()
+
+      if (activeMatch) {
+        return { success: true, data: false } // No se puede, hay match activo
+      }
+
+      return { success: true, data: true } // Se puede enviar nuevo challenge
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }
@@ -110,6 +178,7 @@ class ChallengesService {
         `,
       )
       .or(`challenger_team_id.eq.${teamId},target_team_id.eq.${teamId}`)
+      .order('created_at', { ascending: false })
 
     if (error) return { success: false, error: error.message }
     return { success: true, data: data }

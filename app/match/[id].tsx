@@ -129,18 +129,23 @@ export default function MatchScreen() {
         const memberA = resA.data?.find((m) => m.user_id === userId)
         const memberB = resB.data?.find((m) => m.user_id === userId)
 
+        // Check if user is admin/sub-admin of either team for message permissions
+        const isTeamAAdmin = !!(memberA && (memberA.role === UserRole.ADMIN || memberA.role === UserRole.SUB_ADMIN))
+        const isTeamBAdmin = !!(memberB && (memberB.role === UserRole.ADMIN || memberB.role === UserRole.SUB_ADMIN))
+        const canUserManage = isTeamAAdmin || isTeamBAdmin
+
         if (memberA) {
           setMyTeamId(matchRes.data.team_a.id)
           setMyTeam(matchRes.data.team_a)
           setRivalTeam(matchRes.data.team_b)
           setTeamMembers(resA.data || [])
-          setCanManage(memberA.role === UserRole.ADMIN || memberA.role === UserRole.SUB_ADMIN)
+          setCanManage(canUserManage)
         } else if (memberB) {
           setMyTeamId(matchRes.data.team_b.id)
           setMyTeam(matchRes.data.team_b)
           setRivalTeam(matchRes.data.team_a)
           setTeamMembers(resB.data || [])
-          setCanManage(memberB.role === UserRole.ADMIN || memberB.role === UserRole.SUB_ADMIN)
+          setCanManage(canUserManage)
         } else {
           showToast('No tienes acceso a este partido', 'error')
           setLoading(false)
@@ -151,12 +156,12 @@ export default function MatchScreen() {
           ...(resA.data || []).map((player) => ({
             ...player,
             teamName: matchRes.data?.team_a?.name || 'Equipo A',
-            isBothTeams: true,
+            isBothTeams: false,
           })),
           ...(resB.data || []).map((player) => ({
             ...player,
             teamName: matchRes.data?.team_b?.name || 'Equipo B',
-            isBothTeams: true,
+            isBothTeams: false,
           })),
         ]
         setCitedPlayers(bothTeamMembers)

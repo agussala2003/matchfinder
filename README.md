@@ -23,6 +23,29 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
+- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+
+## ⚽ Features
+
+- **Amateur Team Management**: Create teams, manage rosters, and assign roles.
+- **Match Organization**: Find rivals, schedule matches, and track results.
+- **Player Market**: Recruitment board with filtering by position (Player <-> Team).
+- **Real-time Chat**: Private messaging with live updates for authorized users.
+- **Statistics**: Track Goals, MVP, and Win/Loss records per player and team.
+
+## 🛠️ Setup & Configuration
+
+1.  **Clone the repository**
+2.  **Install dependencies**: `npm install`
+3.  **Supabase Setup**:
+    -   Create a Supabase project.
+    -   **CRITICAL**: Apply RLS policies from `supabase/migrations/20260213_critical_rls_policies.sql` first (see `supabase/APLICAR_RLS_POLICIES.md` for instructions)
+    -   Run any additional SQL migrations found in `supabase/migrations/` (via Dashboard SQL Editor or Supabase CLI).
+    -   Enable **Realtime** for `direct_messages` table in Database > Replication settings.
+4.  **Environment Variables**:
+    -   Copy `.env.example` to `.env` (or create one).
+    -   Add `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY`.
+
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
 ## Get a fresh project

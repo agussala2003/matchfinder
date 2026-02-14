@@ -32,18 +32,13 @@ export interface DirectMessage {
 }
 
 export const dmService = {
-    // Get or Create a conversation between current user and another user
-    // NOTE: This handles DIRECT chats. Team chats are handled in team-chat.service.ts
+    // Obtener o Crear conversación DIRECTA (Usuario a Usuario)
     async getOrCreateConversation(otherUserId: string): Promise<{ success: boolean; data?: Conversation; error?: string }> {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('No authenticated user')
 
-            // For DIRECT conversations, we'll use player_id to store current user
-            // and check if the other user has a conversation with us
-            // This is a workaround since the current structure doesn't fully support DIRECT chats natively with separate participants table
-            
-            // 1. Check if exists - look for conversations where we are the player or where other user is the player
+            // 1. Verificar si ya existe
             const { data: existing, error: fetchError } = await supabase
                 .from('conversations')
                 .select('*')
@@ -53,12 +48,13 @@ export const dmService = {
 
             if (existing) return { success: true, data: existing }
 
-            // 2. Create if not exists - use player_id for current user, team_id for other user (as workaround)
+            // 2. Crear si no existe
+            // Workaround: Usamos team_id para guardar el ID del otro usuario en chats directos
             const { data: newConv, error: createError } = await supabase
                 .from('conversations')
                 .insert({
                     player_id: user.id,
-                    team_id: otherUserId, // Using team_id as second participant (workaround)
+                    team_id: otherUserId, 
                     chat_type: 'DIRECT'
                 })
                 .select()
@@ -71,6 +67,7 @@ export const dmService = {
         }
     },
 
+    // Obtener detalle de una conversación por ID
     async getConversationById(id: string): Promise<{ success: boolean; data?: Conversation; error?: string }> {
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -92,20 +89,16 @@ export const dmService = {
             let teamInfo = null
 
             if (data.chat_type === 'TEAM_PLAYER') {
-                // Lógica Asimétrica:
                 if (data.player_id === user.id) {
-                    // Soy el Jugador -> Hablo con el Equipo
+                    // Soy el JUGADOR -> Veo la info del Equipo
                     teamInfo = data.team
-                    // otherUser se deja null para que la UI sepa que debe mostrar al equipo
                 } else {
-                    // Soy el Capitán/Admin -> Hablo con el Jugador
+                    // Soy el CAPITÁN/SUB -> Veo la info del Jugador
                     otherUser = data.player
-                    teamInfo = data.team // Mantenemos ref al equipo por si acaso
+                    teamInfo = data.team // (Opcional: guardar ref del equipo)
                 }
             } else if (data.chat_type === 'DIRECT') {
-                // Direct chat (workaround logic)
                 if (data.player_id === user.id) {
-                    // Current user is the 'player', fetch 'team_id' as the other profile
                     if (data.team_id) {
                         const { data: otherUserData } = await supabase
                             .from('profiles')
@@ -115,7 +108,6 @@ export const dmService = {
                         otherUser = otherUserData
                     }
                 } else {
-                    // I am the 'team_id' (other side), so 'player_id' is the other user
                     otherUser = data.player
                 }
             }
@@ -132,21 +124,26 @@ export const dmService = {
         }
     },
 
-    async getMessages(conversationId: string): Promise<{ success: boolean; data?: DirectMessage[]; error?: string }> {
-        try {
-            const { data, error } = await supabase
-                .from('direct_messages')
-                .select('*')
-                .eq('conversation_id', conversationId)
-                .order('created_at', { ascending: false })
+    // Traer mensajes de una conversación
+    async getMessages(conversationId: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+        const { data, error } = await supabase
+            .from('direct_messages')
+            .select(`
+                *,
+                sender:profiles!sender_id (id, full_name, username, avatar_url)
+            `)
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: false })
 
-            if (error) throw error
-            return { success: true, data }
-        } catch (error: any) {
-            return { success: false, error: error.message }
-        }
-    },
+        if (error) throw error
+        return { success: true, data }
+    } catch (error: any) {
+        return { success: false, error: error.message }
+    }
+},
 
+    // Enviar mensaje
     async sendMessage(conversationId: string, content: string): Promise<{ success: boolean; data?: DirectMessage; error?: string }> {
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -164,7 +161,7 @@ export const dmService = {
 
             if (error) throw error
 
-            // Update conversation last_timestamp
+            // Actualizar timestamp de último mensaje
             await supabase
                 .from('conversations')
                 .update({ last_message_at: new Date().toISOString() })
@@ -176,26 +173,25 @@ export const dmService = {
         }
     },
 
+    // Listar todas las conversaciones (Inbox)
     async getConversations(): Promise<{ success: boolean; data?: Conversation[]; error?: string }> {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('No authenticated user')
 
-            // 1. Obtener equipos donde soy ADMIN (para ver chats entrantes a mis equipos)
+            // 1. Obtener equipos donde soy ADMIN o SUB_ADMIN (CORREGIDO)
             const { data: myTeams } = await supabase
                 .from('team_members')
                 .select('team_id')
                 .eq('user_id', user.id)
-                .eq('role', 'ADMIN')
+                .in('role', ['ADMIN', 'SUB_ADMIN']) // <-- PERMITE QUE SUB_ADMINS VEAN CHATS
 
             const myTeamIds = myTeams?.map(t => t.team_id) || []
 
-            // 2. Construir condición OR:
-            // - Chats donde soy el usuario directo (player_id)
-            // - Chats directos donde estoy en el slot 'team_id' (workaround)
-            // - Chats de EQUIPO donde el equipo es uno de los míos (team_id IN myTeamIds)
-            
+            // 2. Construir query
             let orCondition = `player_id.eq.${user.id},team_id.eq.${user.id}`
+            
+            // Si gestiono equipos, incluyo los chats dirigidos a esos equipos
             if (myTeamIds.length > 0) {
                 orCondition += `,team_id.in.(${myTeamIds.join(',')})`
             }
@@ -212,25 +208,22 @@ export const dmService = {
 
             if (error) throw error
 
-            // 3. Procesar resultados para determinar "other_user" según el contexto
+            // 3. Procesar para vista asimétrica
             const conversations = await Promise.all(data.map(async (c) => {
                 let otherUser = null
                 let teamInfo = null
 
                 if (c.chat_type === 'TEAM_PLAYER') {
-                    // Lógica Asimétrica
                     if (c.player_id === user.id) {
-                        // Soy el Jugador: Me interesa ver la info del Equipo
+                        // Soy el JUGADOR -> Muestro el Equipo
                         teamInfo = c.team
                     } else {
-                        // Soy el Capitán: Me interesa ver la info del Jugador postulante
+                        // Soy ADMIN/SUB -> Muestro al Jugador postulante
                         otherUser = c.player
-                        teamInfo = c.team
+                        teamInfo = c.team // Referencia útil
                     }
                 } else if (c.chat_type === 'DIRECT') {
-                    // Direct Chat Workaround
                     if (c.player_id === user.id && c.team_id) {
-                        // Buscar info del otro usuario almacenado en team_id
                         const { data: otherUserData } = await supabase
                             .from('profiles')
                             .select('id, full_name, username, avatar_url')

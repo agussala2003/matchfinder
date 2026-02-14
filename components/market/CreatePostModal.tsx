@@ -116,15 +116,7 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
     return (
         <Modal visible={visible} transparent animationType='slide' onRequestClose={onClose}>
             <View className='flex-1 bg-black/80 justify-end'>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    className='bg-modal rounded-t-3xl border-t-2 border-border overflow-hidden'
-                    style={{ 
-                        paddingBottom: Math.max(insets.bottom, 20),
-                        maxHeight: '90%',
-                        minHeight: '60%'
-                    }}
-                >
+                <View className='bg-modal rounded-t-3xl border-t-2 border-transparent overflow-hidden h-[87%] flex-1'>
                     {/* Header */}
                     <View className='flex-row items-center justify-between px-6 py-4 border-b border-border'>
                         <View className='flex-row items-center gap-3'>
@@ -138,10 +130,20 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView className='flex-1' contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        className='flex-1'
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                    >
+                        <ScrollView 
+                            className='flex-1' 
+                            contentContainerStyle={{ flexGrow: 1, padding: 24 }}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
                         {/* Tipo de Publicación */}
                         <View className='mb-6'>
-                            <Text className='text-muted-foreground text-xs font-bold mb-3 ml-1 uppercase tracking-wide'>
+                            <Text className='text-text-muted text-xs uppercase font-semibold tracking-wide mb-2 pl-1'>
                                 ¿Qué buscas?
                             </Text>
 
@@ -205,9 +207,6 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
                         {/* Selector de Equipo (si aplica) */}
                         {type === 'TEAM_SEEKING_PLAYER' && (
                             <View className='mb-6'>
-                                <Text className='text-muted-foreground text-xs font-bold mb-2 ml-1 uppercase tracking-wide'>
-                                    Para el equipo
-                                </Text>
                                 {fetchingTeams ? (
                                     <View className='h-14 items-center justify-center bg-card rounded-xl border border-border'>
                                         <ActivityIndicator color='#00D54B' />
@@ -232,9 +231,6 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
 
                         {/* Posición */}
                         <View className='mb-6'>
-                            <Text className='text-muted-foreground text-xs font-bold mb-2 ml-1 uppercase tracking-wide'>
-                                Posición {type === 'TEAM_SEEKING_PLAYER' ? 'buscada' : 'principal'}
-                            </Text>
                             <Select
                                 options={POSITIONS}
                                 value={position}
@@ -246,7 +242,7 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
 
                         {/* Descripción */}
                         <View className='mb-4'>
-                            <Text className='text-muted-foreground text-xs font-bold mb-2 ml-1 uppercase tracking-wide'>
+                            <Text className='text-text-muted text-xs uppercase font-semibold tracking-wide mb-2 pl-1'>
                                 Descripción (Opcional)
                             </Text>
                             <TextInput
@@ -267,19 +263,22 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
                                 {description.length}/200 caracteres
                             </Text>
                         </View>
-                    </ScrollView>
+                        </ScrollView>
 
-                    {/* Footer */}
-                    <View className='px-6 py-4 border-t border-border gap-3'>
-                        <Button
-                            title={loading ? 'PUBLICANDO...' : 'PUBLICAR'}
-                            onPress={handleCreate}
-                            disabled={loading || (type === 'TEAM_SEEKING_PLAYER' && !selectedTeamId)}
-                            variant='primary'
-                        />
-                        <Button title='Cancelar' variant='secondary' onPress={onClose} />
-                    </View>
-                </KeyboardAvoidingView>
+                        {/* Footer */}
+                        <View 
+                            className='px-6 py-4 border-t border-border gap-3'
+                        >
+                            <Button
+                                title={loading ? 'PUBLICANDO...' : 'PUBLICAR'}
+                                onPress={handleCreate}
+                                disabled={loading || (type === 'TEAM_SEEKING_PLAYER' && !selectedTeamId)}
+                                variant='primary'
+                            />
+                            <Button title='Cancelar' variant='secondary' onPress={onClose} />
+                        </View>
+                    </KeyboardAvoidingView>
+                </View>
             </View>
         </Modal>
     )

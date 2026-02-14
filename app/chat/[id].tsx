@@ -97,7 +97,7 @@ const AnimatedMessageItem = ({ item, userId, conversation }: { item: any, userId
                     {isMe ? (
                         <Text className="text-primary">Yo</Text>
                     ) : isTeammate ? (
-                        <Text className="text-primary">{item.sender?.full_name?.split(' ')[0]} (Admin)</Text>
+                        <Text className="text-primary">{item.sender?.full_name?.split(' ')[0]}</Text>
                     ) : (
                         <Text className="text-muted-foreground">{item.sender?.full_name}</Text>
                     )}

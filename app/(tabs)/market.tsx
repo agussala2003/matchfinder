@@ -174,8 +174,7 @@ export default function MarketScreen() {
       const { teamChatService } = await import('@/services/team-chat.service')
       const res = await teamChatService.getOrCreateTeamToPlayerConversation(
         fromTeam.id, 
-        currentUserId, 
-        post.user_id
+        currentUserId,
       )
       
       if (res.success && res.data) {

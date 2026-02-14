@@ -1,42 +1,101 @@
+import { ChatInbox } from '@/components/chat/ChatInbox'
 import { CreatePostModal } from '@/components/market/CreatePostModal'
+import { MarketPostCard } from '@/components/market/MarketPostCard'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
+import { Select } from '@/components/ui/Select'
 import { useToast } from '@/context/ToastContext'
 import { authService } from '@/services/auth.service'
+import { dmService } from '@/services/dm.service'
 import { marketService } from '@/services/market.service'
+import { teamsService } from '@/services/teams.service'
 import { MarketPost } from '@/types/market'
-import { useFocusEffect } from 'expo-router'
-import { Plus, Shield, User, X } from 'lucide-react-native'
+import { router, useFocusEffect } from 'expo-router'
+import { MessageCircle, Plus, Shield, User, Users } from 'lucide-react-native'
 import React, { useCallback, useState } from 'react'
-import { ActivityIndicator, FlatList, Image, RefreshControl, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native'
+
+const POSITIONS = [
+  { label: 'Cualquiera', value: 'ANY' },
+  { label: 'Arquero', value: 'Arquero' },
+  { label: 'Defensor', value: 'Defensor' },
+  { label: 'Mediocampista', value: 'Mediocampista' },
+  { label: 'Delantero', value: 'Delantero' },
+]
+
+type Tab = 'PLAYERS' | 'TEAMS' | 'MESSAGES'
 
 export default function MarketScreen() {
+  const [activeTab, setActiveTab] = useState<Tab>('PLAYERS') // 'PLAYERS' = Teams seeking players, 'TEAMS' = Players seeking teams
+
+  // Data States
   const [posts, setPosts] = useState<MarketPost[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [modalVisible, setModalVisible] = useState(false)
-  const [filterType, setFilterType] = useState<'ALL' | 'TEAM_SEEKING_PLAYER' | 'PLAYER_SEEKING_TEAM'>('ALL')
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
+  // Filters
+  const [selectedPosition, setSelectedPosition] = useState<string>('ANY')
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [myTeamIds, setMyTeamIds] = useState<string[]>([])
   const { showToast } = useToast()
 
   useFocusEffect(
     useCallback(() => {
-      loadPosts()
       checkUser()
-    }, [filterType])
+    }, [])
+  )
+
+  useFocusEffect(
+    useCallback(() => {
+      if (activeTab !== 'MESSAGES') {
+        loadPosts()
+      }
+    }, [activeTab, selectedPosition, currentUserId, myTeamIds.length])
   )
 
   async function checkUser() {
     const session = await authService.getSession()
-    if (session.data?.user) setCurrentUserId(session.data.user.id)
+    if (session.data?.user) {
+      const uid = session.data.user.id
+      setCurrentUserId(uid)
+      const teamsRes = await teamsService.getUserTeams(uid)
+      if (teamsRes.success && teamsRes.data) {
+        setMyTeamIds(teamsRes.data.map(t => t.id))
+      }
+    }
   }
 
   async function loadPosts() {
     setLoading(true)
-    const type = filterType === 'ALL' ? undefined : filterType
-    const res = await marketService.getPosts(type)
-    if (res.success && res.data) {
-      setPosts(res.data)
+    // Map Tab to Filter Type:
+    // 'PLAYERS' Tab -> Display posts where TEAMS are seeking players (TEAM_SEEKING_PLAYER)
+    // 'TEAMS' Tab -> Display posts where PLAYERS are seeking teams (PLAYER_SEEKING_TEAM)
+    const type = activeTab === 'PLAYERS' ? 'TEAM_SEEKING_PLAYER' : (activeTab === 'TEAMS' ? 'PLAYER_SEEKING_TEAM' : undefined)
+
+    if (type) {
+      const res = await marketService.getPosts(type)
+      if (res.success && res.data) {
+        let data = res.data
+
+        // Filter by Position
+        if (selectedPosition && selectedPosition !== 'ANY') {
+          data = data.filter(p => p.position_needed === selectedPosition)
+        }
+
+        // Filter out my teams (if I am in the team but not the owner of the post)
+        if (type === 'TEAM_SEEKING_PLAYER' && myTeamIds.length > 0) {
+          data = data.filter(p => {
+            // Keep if I am the owner
+            if (p.user_id === currentUserId) return true
+            // Filter out if it is one of my teams
+            if (p.team_id && myTeamIds.includes(p.team_id)) return false
+            return true
+          })
+        }
+
+        setPosts(data)
+      }
     }
     setLoading(false)
     setRefreshing(false)
@@ -52,121 +111,138 @@ export default function MarketScreen() {
     }
   }
 
-  const renderPost = ({ item }: { item: MarketPost }) => {
-    const isOwner = item.user_id === currentUserId || (item.team && item.team.id /* logic for team owner needed but waiting for expanded profile... for now check user_id if we saved it in post */)
-    // Actually we saved user_id in the post for both types!
+  async function handleContact(post: MarketPost) {
+    if (!currentUserId) {
+      showToast('Debes iniciar sesión', 'error')
+      return
+    }
+    const targetUserId = post.user_id
+    if (!targetUserId) return
 
-    const isTeamPost = item.type === 'TEAM_SEEKING_PLAYER'
-    const title = isTeamPost ? (item.team?.name || 'Equipo') : (item.profile?.full_name || 'Jugador')
-    const subtitle = isTeamPost
-      ? `Busca: ${item.position_needed || 'Jugador'}`
-      : `Posición: ${item.position_needed || 'Cualquiera'}`
+    setLoading(true)
+    const res = await dmService.getOrCreateConversation(targetUserId)
+    setLoading(false)
 
-    const imageUrl = isTeamPost ? item.team?.logo_url : item.profile?.avatar_url
+    if (res.success && res.data) {
+      router.push(`/chat/${res.data.id}`)
+    } else {
+      showToast('Error al iniciar chat', 'error')
+    }
+  }
 
-    return (
-      <View className="bg-card p-4 rounded-xl border border-border mb-3 flex-row gap-4">
-        {/* Avatar/Logo */}
-        <View className="w-14 h-14 bg-secondary rounded-full items-center justify-center border border-border overflow-hidden shrink-0">
-          {imageUrl ? (
-            <Image source={{ uri: imageUrl }} className="w-full h-full" />
-          ) : (
-            isTeamPost ? <Shield size={24} color="#A1A1AA" /> : <User size={24} color="#A1A1AA" />
-          )}
-        </View>
-
-        {/* Content */}
-        <View className="flex-1 justify-center">
-          <View className="flex-row justify-between items-start">
-            <View className="shrink-1">
-              <Text className="text-foreground font-bold text-base">{title}</Text>
-              <Text className="text-primary font-bold text-sm mb-1">{subtitle}</Text>
-            </View>
-            {item.user_id === currentUserId && (
-              <TouchableOpacity onPress={() => handleDelete(item.id)} className="p-1 -mt-2 -mr-2">
-                <X size={16} color="#EF4444" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {item.description && (
-            <Text className="text-text-muted text-xs italic" numberOfLines={2}>
-              "{item.description}"
-            </Text>
-          )}
-
-          <View className="flex-row items-center gap-2 mt-2">
-            <View className={`px-2 py-0.5 rounded border ${isTeamPost ? 'bg-blue-500/10 border-blue-500/50' : 'bg-green-500/10 border-green-500/50'}`}>
-              <Text className={`text-[10px] font-bold ${isTeamPost ? 'text-blue-500' : 'text-green-500'}`}>
-                {isTeamPost ? 'BUSCA JUGADOR' : 'BUSCA EQUIPO'}
-              </Text>
-            </View>
-            {item.team?.home_zone && (
-              <Text className="text-text-muted text-[10px] flex-1">📍 {item.team.home_zone}</Text>
-            )}
-          </View>
-        </View>
-      </View>
-    )
+  function handleViewStats(post: MarketPost) {
+    showToast('Ver Perfil: Próximamente', 'info')
   }
 
   return (
     <ScreenLayout loading={false} withPadding={false} className="bg-background">
-      <View className="p-4 gap-4 flex-1">
-        {/* Header & Filters */}
-        <View>
-          <Text className="text-text-main text-2xl font-bold mb-4">Mercado de Pases</Text>
-          <View className="flex-row gap-2">
-            <FilterChip label="Todos" active={filterType === 'ALL'} onPress={() => setFilterType('ALL')} />
-            <FilterChip label="Equipos" active={filterType === 'TEAM_SEEKING_PLAYER'} onPress={() => setFilterType('TEAM_SEEKING_PLAYER')} />
-            <FilterChip label="Jugadores" active={filterType === 'PLAYER_SEEKING_TEAM'} onPress={() => setFilterType('PLAYER_SEEKING_TEAM')} />
-          </View>
+      <View className="flex-1">
+
+        {/* Tabs Header */}
+        <View className="flex-row border-b border-border bg-card elevation-sm">
+          <TouchableOpacity
+            onPress={() => setActiveTab('PLAYERS')}
+            className={`flex-1 items-center justify-center py-4 border-b-2 ${activeTab === 'PLAYERS' ? 'border-primary' : 'border-transparent'}`}
+          >
+            <Users size={20} color={activeTab === 'PLAYERS' ? '#00D54B' : '#A1A1AA'} />
+            <Text className={`text-[10px] font-bold mt-1 uppercase ${activeTab === 'PLAYERS' ? 'text-primary' : 'text-muted-foreground'}`}>
+              Buscan Jugador
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveTab('TEAMS')}
+            className={`flex-1 items-center justify-center py-4 border-b-2 ${activeTab === 'TEAMS' ? 'border-primary' : 'border-transparent'}`}
+          >
+            <User size={20} color={activeTab === 'TEAMS' ? '#00D54B' : '#A1A1AA'} />
+            <Text className={`text-[10px] font-bold mt-1 uppercase ${activeTab === 'TEAMS' ? 'text-primary' : 'text-muted-foreground'}`}>
+              Buscan Equipo
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveTab('MESSAGES')}
+            className={`flex-1 items-center justify-center py-4 border-b-2 ${activeTab === 'MESSAGES' ? 'border-primary' : 'border-transparent'}`}
+          >
+            <MessageCircle size={20} color={activeTab === 'MESSAGES' ? '#00D54B' : '#A1A1AA'} />
+            <Text className={`text-[10px] font-bold mt-1 uppercase ${activeTab === 'MESSAGES' ? 'text-primary' : 'text-muted-foreground'}`}>
+              Mensajes
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* List */}
-        {loading ? (
-          <ActivityIndicator color="#00D54B" className="mt-10" />
-        ) : (
-          <FlatList
-            data={posts}
-            keyExtractor={(item) => item.id}
-            renderItem={renderPost}
-            contentContainerStyle={{ paddingBottom: 80 }}
-            showsVerticalScrollIndicator={false}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadPosts(); }} tintColor="#00D54B" />}
-            ListEmptyComponent={
-              <View className="items-center justify-center mt-20">
-                <Text className="text-text-muted text-center">No hay publicaciones activas.</Text>
+        {/* Content Area */}
+        <View className="flex-1 bg-background">
+          {activeTab === 'MESSAGES' ? (
+            <ChatInbox />
+          ) : (
+            <View className="flex-1">
+              {/* Filters (Only for market tabs) */}
+              <View className="px-4 py-4 bg-background z-10">
+                <Select
+                  label="Filtrar por Posición"
+                  value={selectedPosition}
+                  onChange={setSelectedPosition}
+                  options={POSITIONS}
+                  placeholder="Selecciona posición"
+                />
               </View>
-            }
-          />
+
+              {/* List */}
+              {loading ? (
+                <ActivityIndicator color="#00D54B" className="mt-10" />
+              ) : (
+                <FlatList
+                  data={posts}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <View className="px-4">
+                      <MarketPostCard
+                        item={item}
+                        currentUserId={currentUserId}
+                        onContact={handleContact}
+                        onDelete={handleDelete}
+                        onViewStats={handleViewStats}
+                      />
+                    </View>
+                  )}
+                  contentContainerStyle={{ paddingBottom: 100, paddingTop: 4 }}
+                  showsVerticalScrollIndicator={false}
+                  refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadPosts(); }} tintColor="#00D54B" />}
+                  ListEmptyComponent={
+                    <View className="items-center justify-center mt-20 px-10">
+                      <Shield size={48} color="#27272A" />
+                      <Text className="text-muted-foreground text-center text-lg mt-4 mb-2">No hay publicaciones</Text>
+                      <Text className="text-muted-foreground/60 text-center text-sm">
+                        {activeTab === 'PLAYERS' ? 'Ningún equipo busca jugadores.' : 'Ningún jugador busca equipo.'}
+                      </Text>
+                    </View>
+                  }
+                />
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* FAB (Only for market tabs) */}
+        {activeTab !== 'MESSAGES' && (
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            className="absolute bottom-6 right-6 w-14 h-14 bg-primary rounded-full items-center justify-center shadow-lg shadow-primary/30 z-50"
+          >
+            <Plus size={28} color="#121217" strokeWidth={3} />
+          </TouchableOpacity>
         )}
-      </View>
 
-      {/* FAB */}
-      <View className="absolute bottom-4 right-4">
-        <TouchableOpacity
-          onPress={() => setModalVisible(true)}
-          className="bg-primary w-14 h-14 rounded-full items-center justify-center shadow-lg border-2 border-white/20"
-        >
-          <Plus size={30} color="#000" strokeWidth={2.5} />
-        </TouchableOpacity>
+        <CreatePostModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          onSuccess={() => {
+            loadPosts()
+            setModalVisible(false)
+          }}
+        />
       </View>
-
-      <CreatePostModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onSuccess={loadPosts}
-      />
     </ScreenLayout>
   )
 }
-
-const FilterChip = ({ label, active, onPress }: { label: string, active: boolean, onPress: () => void }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    className={`px-4 py-2 rounded-full border ${active ? 'bg-primary border-primary' : 'bg-transparent border-border'}`}
-  >
-    <Text className={`font-bold text-xs ${active ? 'text-black' : 'text-text-muted'}`}>{label}</Text>
-  </TouchableOpacity>
-)

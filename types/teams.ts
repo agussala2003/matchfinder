@@ -59,3 +59,31 @@ export const createTeamSchema = z.object({
 
 // Tipo inferido para usar en el servicio
 export type CreateTeamInput = z.infer<typeof createTeamSchema>
+
+// --- TIPOS DE SEGURIDAD ---
+
+/**
+ * Campos sensibles que NO pueden ser editados desde el cliente.
+ * Solo el servidor (Edge Functions, Database Triggers) puede modificarlos.
+ */
+export type TeamProtectedFields = 
+  | 'elo_rating'      // Solo cambia vía cálculo ELO automático
+  | 'captain_id'      // Solo cambia vía función transfer_team_captain()
+  | 'share_code'      // Generado automáticamente por trigger
+  | 'id'              // Primary key inmutable
+  | 'created_at'      // Timestamp automático
+
+/**
+ * Tipo seguro para actualizaciones de equipo.
+ * Excluye campos protegidos que no deben ser modificables desde el cliente.
+ * 
+ * Uso:
+ * ```typescript
+ * const updates: TeamSafeUpdate = {
+ *   name: 'Nuevo Nombre',
+ *   logo_url: 'https://...',
+ *   // elo_rating: 1500  ❌ TypeScript error!
+ * }
+ * ```
+ */
+export type TeamSafeUpdate = Omit<Partial<Team>, TeamProtectedFields>

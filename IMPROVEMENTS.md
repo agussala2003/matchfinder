@@ -6,33 +6,28 @@ This document outlines the findings from a deep static code analysis of the Matc
 
 ## 🚨 CRITICAL ISSUES (Must Fix)
 
-### 1. 🕒 Timezone & Date Handling
-- **Location**: `app/match/[id].tsx` (Lines 256, 299)
-- **Issue**: Dates are being parsed and formatted using manual string manipulation (`split`, `parseInt`, `getFullYear`). This is highly error-prone and will break across different devices/locales.
-- **Recommendation**:
-  - Install `date-fns` or `dayjs`.
-  - Replace manual parsing with `parseISO` and `format`.
-  - Ensure all dates sent to Supabase are UTC.
+### 1. 🕒 Timezone & Date Handling (RESOLVED)
+- **Status**: ✅ Fixed.
+- **Solution**: Implemented `date-fns` and robust UTC handling in `match/[id].tsx` and `constants`.
 
-### 2. 🎭 Hardcoded Dashboard
-- **Location**: `app/(tabs)/index.tsx`
-- **Issue**: The entire dashboard (User name "Agustín", "Sede: Fútbol 5 Palermo", "HOY 20:00HS") is static JSX. It is not connected to `authService` or `matchesService`.
-- **Recommendation**:
-  - Fetch User Profile on mount.
-  - Fetch "Next Match" using `matchesService.getNextMatch()`.
-  - Implement dynamic rendering for the "Hero Section".
+### 2. 🎭 Hardcoded Dashboard (RESOLVED)
+- **Status**: ✅ Fixed.
+- **Solution**: Dashboard now fetches real "Next Match" and user profile data.
 
-### 3. 📸 Unimplemented W.O. Logic
-- **Location**: `app/match/[id].tsx` (Lines 776-781)
-- **Issue**: The "TOMAR FOTO" button for Walkover evidence only shows a toast "Función no implementada".
-- **Recommendation**:
-  - Integrate `expo-camera` or `expo-image-picker`.
-  - Upload evidence to Supabase Storage (`storage.service.ts`).
-  - Update match status to `WO_A` or `WO_B` with evidence URL.
+### 3. 📸 Unimplemented W.O. Logic (RESOLVED)
+- **Status**: ✅ Fixed.
+- **Solution**: Integrated `expo-image-picker` and created `storage.service.ts` to handle evidence uploads.
+
+### 4. 📉 Market & Chat (RESOLVED)
+- **Status**: ✅ Fixed.
+- **Solution**:
+  - Implemented Realtime Chat with `Supabase Realtime`.
+  - Redesigned `MarketPostCard` for better UX.
+  - Added "Position Filter" and "Direct Contact" features.
 
 ---
 
-## 🏗️ ARCHITECTURAL IMPROVEMENTS
+## 🏗️ ARCHITECTURAL IMPROVEMENTS (PENDING)
 
 ### 1. 🧩 Decompose "God Components"
 - **Component**: `MatchScreen` (`app/match/[id].tsx`)

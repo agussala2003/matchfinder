@@ -2,7 +2,7 @@ import { CONFIG } from '@/lib/config'
 import { supabase } from '@/lib/supabase'
 import { UserProfile } from '@/types/auth'
 import { ServiceResponse, TeamMemberStatus, UserRole } from '@/types/core'
-import { Team, createTeamSchema } from '@/types/teams'
+import { Team, createTeamSchema, TeamSafeUpdate } from '@/types/teams'
 import { ZodError } from 'zod'
 
 export interface TeamMemberDetail {
@@ -103,10 +103,26 @@ class TeamsService {
     }
   }
 
-  async updateTeam(teamId: string, updates: Partial<Team>): Promise<ServiceResponse<Team>> {
+  async updateTeam(teamId: string, updates: TeamSafeUpdate): Promise<ServiceResponse<Team>> {
+    // SECURITY: Filtrar campos sensibles que NO deben ser editables desde el cliente
+    // Estos campos solo pueden ser modificados por el servidor (Edge Functions, Triggers)
+    const { 
+      elo_rating,      // Solo puede cambiar vía cálculo ELO después de partidos
+      captain_id,      // Solo puede cambiar vía transfer_team_captain()
+      share_code,      // Generado automáticamente por trigger
+      id,              // PK inmutable
+      created_at,      // Timestamp automático
+      ...safeUpdates   // Solo campos seguros
+    } = updates
+    
+    // Validar que hay campos para actualizar
+    if (Object.keys(safeUpdates).length === 0) {
+      return { success: false, error: 'No hay campos válidos para actualizar' }
+    }
+
     const { data, error } = await supabase
       .from('teams')
-      .update(updates)
+      .update(safeUpdates)  // Solo enviar campos seguros
       .eq('id', teamId)
       .select()
       .single()
@@ -264,6 +280,28 @@ class TeamsService {
 
       if (error) throw error
       return { success: true }
+    } catch (error) {
+      return { success: false, error: this.handleError(error) }
+    }
+  }
+
+  // Obtains teams where the user is ADMIN or SUB_ADMIN (for post creation, management, etc)
+  async getUserManagedTeams(userId: string): Promise<ServiceResponse<Team[]>> {
+    try {
+      if (!userId) throw new Error('User ID es requerido')
+
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('team_id, teams(*)')
+        .eq('user_id', userId)
+        .eq('status', TeamMemberStatus.ACTIVE)
+        .in('role', [UserRole.ADMIN, UserRole.SUB_ADMIN])
+
+      if (error) throw error
+
+      const teams = (data || []).map((item: any) => item.teams).filter((t: any) => t !== null) as Team[]
+
+      return { success: true, data: teams }
     } catch (error) {
       return { success: false, error: this.handleError(error) }
     }

@@ -11,7 +11,7 @@ import { authService } from '@/services/auth.service'
 import { storageService } from '@/services/storage.service'
 import { TeamMemberDetail, teamsService } from '@/services/teams.service'
 import { TeamMemberStatus, UserRole } from '@/types/core'
-import { Team } from '@/types/teams'
+import { Team, TeamSafeUpdate } from '@/types/teams'
 
 // Components
 import { ActiveMembersSection } from '@/components/manage-team/ActiveMembersSection'
@@ -124,7 +124,7 @@ export default function ManageTeamScreen() {
     }
   }
 
-  async function handleUpdateTeamInfo(updates: Partial<Team>) {
+  async function handleUpdateTeamInfo(updates: TeamSafeUpdate) {
     if (!team) return
     const res = await teamsService.updateTeam(team.id, updates)
     if (res.success && res.data) {

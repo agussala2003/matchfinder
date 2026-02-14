@@ -10,7 +10,7 @@ interface ProposalModalProps {
     onClose: () => void
     onSend: () => void
     propDate: Date
-    setPropDate: (date: Date) => void // Actually handled by DatePicker in parent or here? 
+    // setPropDate: (date: Date) => void // Removed as unused 
     // Parent handles DatePicker visibility, so simple props for now or move DatePicker here?
     // Moving DatePicker here is better for encapsulation but might be tricky with platform specifics if not careful.
     // Let's keep it simple: Pass values and triggers or pass just the state setters if passing logic.

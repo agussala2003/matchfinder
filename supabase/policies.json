@@ -1,0 +1,402 @@
+[
+  {
+    "schemaname": "public",
+    "tablename": "profiles",
+    "policyname": "Public read access",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "teams",
+    "policyname": "Public read access",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "matches",
+    "policyname": "Public read access",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "venues",
+    "policyname": "Public read access",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "profiles",
+    "policyname": "Users can insert their own profile",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() = id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "profiles",
+    "policyname": "Users can update their own profile",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(auth.uid() = id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "seasons",
+    "policyname": "Public read access",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "market_posts",
+    "policyname": "Public read access",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "match_results",
+    "policyname": "Public read access",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "player_stats",
+    "policyname": "Public read access",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "team_members",
+    "policyname": "Public read access",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "team_members",
+    "policyname": "Enable insert for team members",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "teams",
+    "policyname": "Enable insert for team captains",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() = captain_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "team_members",
+    "policyname": "Users can leave team",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "teams",
+    "policyname": "Admins and SubAdmins can update team",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM team_members\n  WHERE ((team_members.team_id = teams.id) AND (team_members.user_id = auth.uid()) AND (team_members.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "team_members",
+    "policyname": "Admins and SubAdmins can manage members",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM team_members managers\n  WHERE ((managers.team_id = team_members.team_id) AND (managers.user_id = auth.uid()) AND (managers.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])) AND (managers.status = 'ACTIVE'::estado_miembro_enum))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "challenges",
+    "policyname": "See challenges involved",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM team_members\n  WHERE ((team_members.user_id = auth.uid()) AND (team_members.status = 'ACTIVE'::estado_miembro_enum) AND ((team_members.team_id = challenges.challenger_team_id) OR (team_members.team_id = challenges.target_team_id)))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "challenges",
+    "policyname": "Manage outgoing challenges",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "ALL",
+    "qual": "(EXISTS ( SELECT 1\n   FROM team_members\n  WHERE ((team_members.user_id = auth.uid()) AND (team_members.team_id = challenges.challenger_team_id) AND (team_members.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "challenges",
+    "policyname": "Manage incoming challenges",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM team_members\n  WHERE ((team_members.user_id = auth.uid()) AND (team_members.team_id = challenges.target_team_id) AND (team_members.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "challenges",
+    "policyname": "Team members can view challenges",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM team_members\n  WHERE ((team_members.user_id = auth.uid()) AND ((team_members.team_id = challenges.challenger_team_id) OR (team_members.team_id = challenges.target_team_id)))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "challenges",
+    "policyname": "Managers can manage outgoing challenges",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "ALL",
+    "qual": "(EXISTS ( SELECT 1\n   FROM team_members\n  WHERE ((team_members.user_id = auth.uid()) AND (team_members.team_id = challenges.challenger_team_id) AND (team_members.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "challenges",
+    "policyname": "Managers can respond to challenges",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM team_members\n  WHERE ((team_members.user_id = auth.uid()) AND (team_members.team_id = challenges.target_team_id) AND (team_members.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "team_members",
+    "policyname": "Team managers can delete members",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM team_members managers\n  WHERE ((managers.team_id = team_members.team_id) AND (managers.user_id = auth.uid()) AND (managers.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])) AND (managers.status = 'ACTIVE'::estado_miembro_enum))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "market_posts",
+    "policyname": "Users can delete own market posts",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "((auth.uid() = user_id) OR (auth.uid() IN ( SELECT teams.captain_id\n   FROM teams\n  WHERE (teams.id = market_posts.team_id))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "notifications",
+    "policyname": "Users can view own notifications",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "notifications",
+    "policyname": "Users can insert notifications",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.role() = 'authenticated'::text)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "notifications",
+    "policyname": "Users can update own notifications",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "market_posts",
+    "policyname": "Authenticated can create posts",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.role() = 'authenticated'::text)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "match_messages",
+    "policyname": "Users can read messages from their matches",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(match_id IN ( SELECT m.id\n   FROM (matches m\n     JOIN team_members tm ON (((tm.team_id = m.team_a_id) OR (tm.team_id = m.team_b_id))))\n  WHERE ((tm.user_id = auth.uid()) AND (tm.status = 'ACTIVE'::estado_miembro_enum))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "match_messages",
+    "policyname": "Users can send messages for their active team",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((EXISTS ( SELECT 1\n   FROM team_members tm\n  WHERE ((tm.team_id = match_messages.sender_team_id) AND (tm.user_id = auth.uid()) AND (tm.status = 'ACTIVE'::estado_miembro_enum)))) AND (EXISTS ( SELECT 1\n   FROM matches m\n  WHERE ((m.id = match_messages.match_id) AND ((m.team_a_id = match_messages.sender_team_id) OR (m.team_b_id = match_messages.sender_team_id))))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "match_messages",
+    "policyname": "Admins can update match messages",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (matches m\n     JOIN team_members tm ON (((tm.team_id = m.team_a_id) OR (tm.team_id = m.team_b_id))))\n  WHERE ((m.id = match_messages.match_id) AND (tm.user_id = auth.uid()) AND (tm.status = 'ACTIVE'::estado_miembro_enum) AND (((tm.role)::text = 'ADMIN'::text) OR ((tm.role)::text = 'SUB_ADMIN'::text)))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "conversations",
+    "policyname": "Users can view their conversations",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "((auth.uid() = participant_a) OR (auth.uid() = participant_b))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "conversations",
+    "policyname": "Users can insert conversations",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((auth.uid() = participant_a) OR (auth.uid() = participant_b))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "conversations",
+    "policyname": "Users can delete their own conversations",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "((auth.uid() = participant_a) OR (auth.uid() = participant_b))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "direct_messages",
+    "policyname": "Users can view messages in their conversations",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE ((c.id = direct_messages.conversation_id) AND ((c.participant_a = auth.uid()) OR (c.participant_b = auth.uid())))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "direct_messages",
+    "policyname": "Users can send messages in their conversations",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((auth.uid() = sender_id) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE ((c.id = direct_messages.conversation_id) AND ((c.participant_a = auth.uid()) OR (c.participant_b = auth.uid()))))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "match_results",
+    "policyname": "Captains can insert match results",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() IN ( SELECT tm.user_id\n   FROM (team_members tm\n     JOIN matches m ON (((tm.team_id = m.team_a_id) OR (tm.team_id = m.team_b_id))))\n  WHERE ((m.id = match_results.match_id) AND (tm.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])) AND (tm.status = 'ACTIVE'::estado_miembro_enum))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "match_results",
+    "policyname": "Captains can update match results",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(auth.uid() IN ( SELECT tm.user_id\n   FROM (team_members tm\n     JOIN matches m ON (((tm.team_id = m.team_a_id) OR (tm.team_id = m.team_b_id))))\n  WHERE ((m.id = match_results.match_id) AND (tm.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])) AND (tm.status = 'ACTIVE'::estado_miembro_enum))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "matches",
+    "policyname": "Captains can update match details",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(auth.uid() IN ( SELECT tm.user_id\n   FROM team_members tm\n  WHERE (((tm.team_id = matches.team_a_id) OR (tm.team_id = matches.team_b_id)) AND (tm.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])) AND (tm.status = 'ACTIVE'::estado_miembro_enum))))",
+    "with_check": "\nCASE\n    WHEN (status = 'WO_A'::estado_partido_enum) THEN (auth.uid() IN ( SELECT tm.user_id\n       FROM team_members tm\n      WHERE ((tm.team_id = matches.team_a_id) AND (tm.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])) AND (tm.status = 'ACTIVE'::estado_miembro_enum))))\n    WHEN (status = 'WO_B'::estado_partido_enum) THEN (auth.uid() IN ( SELECT tm.user_id\n       FROM team_members tm\n      WHERE ((tm.team_id = matches.team_b_id) AND (tm.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])) AND (tm.status = 'ACTIVE'::estado_miembro_enum))))\n    ELSE (auth.uid() IN ( SELECT tm.user_id\n       FROM team_members tm\n      WHERE (((tm.team_id = matches.team_a_id) OR (tm.team_id = matches.team_b_id)) AND (tm.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])) AND (tm.status = 'ACTIVE'::estado_miembro_enum))))\nEND"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "matches",
+    "policyname": "Captains can create matches for their teams",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() IN ( SELECT tm.user_id\n   FROM team_members tm\n  WHERE (((tm.team_id = matches.team_a_id) OR (tm.team_id = matches.team_b_id)) AND (tm.role = ANY (ARRAY['ADMIN'::rol_enum, 'SUB_ADMIN'::rol_enum])) AND (tm.status = 'ACTIVE'::estado_miembro_enum))))"
+  }
+]

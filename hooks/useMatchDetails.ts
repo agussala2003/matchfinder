@@ -29,6 +29,7 @@ export function useMatchDetails(matchId: string | undefined) {
     const [canManage, setCanManage] = useState(false)
 
     const [messages, setMessages] = useState<ChatMessage[]>([])
+    const [userId, setUserId] = useState<string>('')
 
     const initializeMatch = useCallback(async () => {
         if (!matchId) return
@@ -36,12 +37,13 @@ export function useMatchDetails(matchId: string | undefined) {
             setLoading(true)
 
             const session = await authService.getSession()
-            const userId = session.data?.user?.id
-            if (!userId) {
+            const uid = session.data?.user?.id
+            if (!uid) {
                 showToast('No se pudo identificar el usuario', 'error')
                 setLoading(false)
                 return
             }
+            setUserId(uid)
 
             const matchRes = await matchesService.getMatchById(matchId)
             if (!matchRes.data) {
@@ -57,8 +59,8 @@ export function useMatchDetails(matchId: string | undefined) {
                     teamsService.getTeamMembers(matchRes.data.team_b.id),
                 ])
 
-                const memberA = resA.data?.find((m) => m.user_id === userId)
-                const memberB = resB.data?.find((m) => m.user_id === userId)
+                const memberA = resA.data?.find((m) => m.user_id === uid)
+                const memberB = resB.data?.find((m) => m.user_id === uid)
 
                 const isTeamAAdmin = !!(memberA && (memberA.role === UserRole.ADMIN || memberA.role === UserRole.SUB_ADMIN))
                 const isTeamBAdmin = !!(memberB && (memberB.role === UserRole.ADMIN || memberB.role === UserRole.SUB_ADMIN))
@@ -82,19 +84,20 @@ export function useMatchDetails(matchId: string | undefined) {
                     return
                 }
 
-                const bothTeamMembers: CitedPlayer[] = [
-                    ...(resA.data || []).map((player) => ({
-                        ...player,
-                        teamName: matchRes.data?.team_a?.name || 'Equipo A',
-                        isBothTeams: false,
-                    })),
-                    ...(resB.data || []).map((player) => ({
-                        ...player,
-                        teamName: matchRes.data?.team_b?.name || 'Equipo B',
-                        isBothTeams: false,
-                    })),
-                ]
-                setCitedPlayers(bothTeamMembers)
+                // Process players for LineupView
+                const idsA = new Set((resA.data || []).map(p => p.user_id))
+                const idsB = new Set((resB.data || []).map(p => p.user_id))
+
+                const mapPlayer = (p: TeamMemberDetail, teamName: string) => ({
+                    ...p,
+                    teamName,
+                    isBothTeams: idsA.has(p.user_id) && idsB.has(p.user_id)
+                })
+
+                const playersA = (resA.data || []).map(p => mapPlayer(p, matchRes.data?.team_a?.name || 'Equipo A'))
+                const playersB = (resB.data || []).map(p => mapPlayer(p, matchRes.data?.team_b?.name || 'Equipo B'))
+
+                setCitedPlayers([...playersA, ...playersB])
             }
 
             const chatRes = await chatService.getMessages(matchId)
@@ -346,6 +349,7 @@ export function useMatchDetails(matchId: string | undefined) {
         messages,
         citedPlayers,
         teamMembers,
+        userId,
         refreshMatch: initializeMatch,
         sendProposal,
         acceptProposal,

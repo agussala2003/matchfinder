@@ -101,6 +101,7 @@ Based on the TypeScript interfaces and service logic, the Supabase database like
     -   `id` (UUID, PK)
     -   `username`, `full_name`, `avatar_url`
     -   `position`, `zone`
+    -   `matches_played`, `goals_scored`, `wins` (Added for stats)
 2.  **`teams`**:
     -   `id` (UUID, PK)
     -   `name`, `logo_url`
@@ -117,8 +118,23 @@ Based on the TypeScript interfaces and service logic, the Supabase database like
     -   `id` (PK)
     -   `home_team_id`, `away_team_id`
     -   `date`, `location`, `status`
-5.  **`challenges`** (for proposing matches)
-6.  **`messages`** (for match chat)
+    -   `result_home`, `result_away`
+    -   `walkover_evidence_url`
+5.  **`match_players`** (Stats per match):
+    -   `match_id`, `user_id`, `team_id`
+    -   `goals`, `assists`, `rating`, `is_mvp`
+6.  **`conversations`**:
+    -   `id`, `participant_a`, `participant_b`
+    -   `last_message_at`
+7.  **`direct_messages`**:
+    -   `id`, `conversation_id`, `sender_id`, `content`
+    -   `created_at`, `is_read`
+8.  **`market_posts`**:
+    -   `id`, `user_id`, `team_id` (nullable)
+    -   `type` ('PLAYER_LOOKING_TEAM', 'TEAM_SEEKING_PLAYER')
+    -   `position_needed`, `zone`, `description`
+9.  **`challenges`** (for proposing matches)
+10. **`messages`** (for match chat)
 
 ---
 
@@ -131,9 +147,17 @@ Based on the TypeScript interfaces and service logic, the Supabase database like
     -   Invite via unique Share Codes.
 3.  **Match Flow**:
     -   States: Pending -> Confirmed -> Live -> Finished.
-    -   Real-time Chat per match.
-    -   Check-in system for player attendance.
-4.  **Rivals & Challenges**: Search for teams by zone and issue challenges.
+    -   **Post-Match Analysis**: Track goals, MVP, and player ratings.
+    -   **Walkover Evidence**: Upload photo proof for W.O.
+4.  **Transfer Market**:
+    -   Players and Teams can post ads.
+    -   Filter by position (e.g., "Arquero", "Mediocampista").
+    -   Direct "Contact" button starts a chat.
+5.  **Real-time Chat**:
+    -   1-on-1 private messaging.
+    -   Real-time updates (Supabase Realtime).
+    -   Inbox with unread indicators (visual).
+6.  **Rivals & Challenges**: Search for teams by zone and issue challenges.
 
 ---
 

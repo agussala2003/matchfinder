@@ -1,0 +1,716 @@
+[
+  {
+    "table_schema": "public",
+    "table_name": "challenges",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "challenges",
+    "column_name": "challenger_team_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "challenges",
+    "column_name": "target_team_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "challenges",
+    "column_name": "status",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "challenges",
+    "column_name": "message",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "challenges",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "challenges",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "conversations",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "conversations",
+    "column_name": "participant_a",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "conversations",
+    "column_name": "participant_b",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "conversations",
+    "column_name": "last_message_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "conversations",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "direct_messages",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "direct_messages",
+    "column_name": "conversation_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "direct_messages",
+    "column_name": "sender_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "direct_messages",
+    "column_name": "content",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "direct_messages",
+    "column_name": "is_read",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "direct_messages",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "market_posts",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "market_posts",
+    "column_name": "match_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "market_posts",
+    "column_name": "team_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "market_posts",
+    "column_name": "position_needed",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "market_posts",
+    "column_name": "status",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "market_posts",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "market_posts",
+    "column_name": "type",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "market_posts",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "market_posts",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_messages",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_messages",
+    "column_name": "match_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_messages",
+    "column_name": "sender_team_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_messages",
+    "column_name": "content",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_messages",
+    "column_name": "type",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_messages",
+    "column_name": "proposal_data",
+    "data_type": "jsonb",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_messages",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_messages",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_messages",
+    "column_name": "sender_user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_results",
+    "column_name": "match_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_results",
+    "column_name": "goals_a",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_results",
+    "column_name": "goals_b",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_results",
+    "column_name": "is_draw",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_results",
+    "column_name": "confirmed_by_a",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_results",
+    "column_name": "confirmed_by_b",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "match_results",
+    "column_name": "submitted_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "season_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "team_a_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "team_b_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "venue_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "scheduled_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "status",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "is_friendly",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "booking_confirmed",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "wo_evidence_url",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "notifications",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "notifications",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "notifications",
+    "column_name": "type",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "notifications",
+    "column_name": "title",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "notifications",
+    "column_name": "message",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "notifications",
+    "column_name": "data",
+    "data_type": "jsonb",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "notifications",
+    "column_name": "is_read",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "notifications",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "player_stats",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "player_stats",
+    "column_name": "match_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "player_stats",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "player_stats",
+    "column_name": "team_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "player_stats",
+    "column_name": "goals",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "player_stats",
+    "column_name": "is_mvp",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "profiles",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "profiles",
+    "column_name": "username",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "profiles",
+    "column_name": "full_name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "profiles",
+    "column_name": "position",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "profiles",
+    "column_name": "reputation",
+    "data_type": "double precision",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "profiles",
+    "column_name": "avatar_url",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "profiles",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "seasons",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "seasons",
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "seasons",
+    "column_name": "start_date",
+    "data_type": "date",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "seasons",
+    "column_name": "end_date",
+    "data_type": "date",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "seasons",
+    "column_name": "is_active",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "seasons",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "team_members",
+    "column_name": "team_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "team_members",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "team_members",
+    "column_name": "role",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "team_members",
+    "column_name": "status",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "team_members",
+    "column_name": "joined_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "teams",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "teams",
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "teams",
+    "column_name": "captain_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "teams",
+    "column_name": "elo_rating",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "teams",
+    "column_name": "home_zone",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "teams",
+    "column_name": "logo_url",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "teams",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "teams",
+    "column_name": "category",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "teams",
+    "column_name": "share_code",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "venues",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "venues",
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "venues",
+    "column_name": "address",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "venues",
+    "column_name": "latitude",
+    "data_type": "double precision",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "venues",
+    "column_name": "longitude",
+    "data_type": "double precision",
+    "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "venues",
+    "column_name": "verified",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "venues",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  }
+]

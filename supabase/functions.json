@@ -1,0 +1,26 @@
+[
+  {
+    "routine_name": "create_match_from_challenge",
+    "routine_definition": "\r\nBEGIN\r\n  IF NEW.status = 'ACCEPTED' AND OLD.status != 'ACCEPTED' THEN\r\n    INSERT INTO matches (team_a_id, team_b_id, status, is_friendly, created_at) \r\n    VALUES (NEW.challenger_team_id, NEW.target_team_id, 'PENDING', TRUE, NOW());\r\n  END IF;\r\n  RETURN NEW;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "delete_team_if_empty",
+    "routine_definition": "\r\nBEGIN\r\n  -- Si no queda nadie en el equipo del que acaban de salir...\r\n  IF NOT EXISTS (SELECT 1 FROM team_members WHERE team_id = OLD.team_id) THEN\r\n    -- ... Borramos el equipo (Ahora sí funcionará porque somos Admin aquí)\r\n    DELETE FROM teams WHERE id = OLD.team_id;\r\n  END IF;\r\n  RETURN OLD;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "generate_unique_team_code",
+    "routine_definition": "\r\nDECLARE\r\n  new_code TEXT;\r\n  exists_check BOOLEAN;\r\nBEGIN\r\n  LOOP\r\n    -- Generar string de 6 caracteres mayúsculas/números\r\n    new_code := upper(substring(md5(random()::text) from 1 for 6));\r\n    \r\n    -- Verificar si existe\r\n    SELECT EXISTS(SELECT 1 FROM teams WHERE share_code = new_code) INTO exists_check;\r\n    \r\n    -- Si no existe, salir del loop\r\n    EXIT WHEN NOT exists_check;\r\n  END LOOP;\r\n  \r\n  NEW.share_code := new_code;\r\n  RETURN NEW;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "handle_captain_exit",
+    "routine_definition": "\r\nDECLARE\r\n  new_captain_id UUID;\r\nBEGIN\r\n  -- Solo actuamos si el que se está borrando (OLD) es el ADMIN\r\n  IF OLD.role = 'ADMIN' THEN\r\n    \r\n    -- BUSCAR SUCESOR\r\n    -- Prioridad 1: Rango (SUB_ADMIN gana a PLAYER)\r\n    -- Prioridad 2: Antigüedad (El que entró antes gana)\r\n    SELECT user_id INTO new_captain_id\r\n    FROM team_members\r\n    WHERE team_id = OLD.team_id\r\n    AND user_id != OLD.user_id -- No contarnos a nosotros mismos\r\n    AND status = 'ACTIVE'      -- Solo miembros activos (no pendientes)\r\n    ORDER BY \r\n      CASE role \r\n        WHEN 'SUB_ADMIN' THEN 1 \r\n        WHEN 'PLAYER' THEN 2 \r\n        ELSE 3 \r\n      END ASC,\r\n      joined_at ASC -- El más antiguo primero\r\n    LIMIT 1;\r\n\r\n    -- SI HAY SUCESOR:\r\n    IF new_captain_id IS NOT NULL THEN\r\n      -- 1. Ascenderlo a ADMIN en la tabla de miembros\r\n      UPDATE team_members \r\n      SET role = 'ADMIN' \r\n      WHERE user_id = new_captain_id AND team_id = OLD.team_id;\r\n      \r\n      -- 2. Actualizar la referencia en la tabla 'teams'\r\n      UPDATE teams \r\n      SET captain_id = new_captain_id \r\n      WHERE id = OLD.team_id;\r\n    END IF;\r\n    \r\n    -- Si NO hay sucesor, no hacemos nada. \r\n    -- El trigger 'delete_team_if_empty' (que se ejecuta AFTER DELETE)\r\n    -- se encargará de borrar el equipo si queda vacío.\r\n  END IF;\r\n  \r\n  RETURN OLD;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "sync_team_captain",
+    "routine_definition": "\r\nBEGIN\r\n  -- Si el rol nuevo es ADMIN, actualizamos la tabla 'teams'\r\n  IF NEW.role = 'ADMIN' THEN\r\n    UPDATE teams \r\n    SET captain_id = NEW.user_id \r\n    WHERE id = NEW.team_id;\r\n  END IF;\r\n  RETURN NEW;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "transfer_team_captain",
+    "routine_definition": "\r\nBEGIN\r\n  -- 1. Degradar a TODOS los administradores actuales de ese equipo a JUGADOR\r\n  UPDATE team_members \r\n  SET role = 'PLAYER' \r\n  WHERE team_members.team_id = transfer_team_captain.team_id \r\n  AND role = 'ADMIN';\r\n\r\n  -- 2. Ascender al NUEVO capitán\r\n  UPDATE team_members \r\n  SET role = 'ADMIN' \r\n  WHERE team_members.team_id = transfer_team_captain.team_id \r\n  AND user_id = transfer_team_captain.new_captain_id;\r\n\r\n  -- 3. Actualizar la tabla de equipos\r\n  UPDATE teams \r\n  SET captain_id = transfer_team_captain.new_captain_id \r\n  WHERE id = transfer_team_captain.team_id;\r\nEND;\r\n"
+  }
+]

@@ -63,7 +63,8 @@ export default function MatchScreen() {
     updateMatchDetails,
     cancelMatch,
     submitResult,
-    claimWalkover
+    claimWalkover,
+    userId
   } = useMatchDetails(id as string)
 
   const [matchState, setMatchState] = useState<MatchState>('previa')
@@ -128,7 +129,7 @@ export default function MatchScreen() {
     }
     const text = inputText.trim()
     setInputText('')
-    const result = await chatService.sendText(match.id, myTeamId, text)
+    const result = await chatService.sendText(match.id, myTeamId, text, userId)
     if (!result.success) {
       showToast('Error al enviar mensaje', 'error')
       setInputText(text)

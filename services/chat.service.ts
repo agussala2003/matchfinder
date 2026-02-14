@@ -7,9 +7,14 @@ export interface ChatMessage {
   sender_team_id: string
   content: string
   type: 'TEXT' | 'PROPOSAL'
-  proposal_data?: { date: string; time: string }
+  proposal_data?: { date: string; time: string; isFriendly?: boolean; venue?: string; modality?: string; duration?: string }
   status: 'SENT' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED'
   created_at: string
+  sender_user_id?: string
+  profile?: {
+    full_name: string
+    username: string
+  }
 }
 
 class ChatService {
@@ -20,12 +25,18 @@ class ChatService {
     try {
       const { data, error } = await supabase
         .from('match_messages')
-        .select('*')
+        .select(`
+          *,
+          profile:sender_user_id (
+            full_name,
+            username
+          )
+        `)
         .eq('match_id', matchId)
-        .order('created_at', { ascending: false }) // Más nuevos primero para el chat invertido
+        .order('created_at', { ascending: false })
 
       if (error) throw error
-      return { success: true, data: data as ChatMessage[] }
+      return { success: true, data: data as any[] }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }
@@ -34,11 +45,12 @@ class ChatService {
   /**
    * Enviar Mensaje de Texto
    */
-  async sendText(matchId: string, teamId: string, content: string): Promise<ServiceResponse> {
+  async sendText(matchId: string, teamId: string, content: string, userId: string): Promise<ServiceResponse> {
     try {
       const { error } = await supabase.from('match_messages').insert({
         match_id: matchId,
         sender_team_id: teamId,
+        sender_user_id: userId,
         content,
         type: 'TEXT',
       })

@@ -21,7 +21,9 @@ class StatsService {
                 match_id: matchId,
                 user_id: s.userId,
                 team_id: s.teamId,
-                goals: s.goals,
+                // SECURITY: Validar y clamp valores de goles para prevenir valores absurdos
+                // Máximo 30 goles por jugador (constraint DB), pero validamos aquí también
+                goals: Math.max(0, Math.min(s.goals, 30)),
                 is_mvp: s.isMvp
             }))
 

@@ -1,14 +1,15 @@
 import { ChatInbox } from '@/components/chat/ChatInbox'
 import { CreatePostModal } from '@/components/market/CreatePostModal'
 import { MarketPostCard } from '@/components/market/MarketPostCard'
+import { TeamSelectionModal } from '@/components/market/TeamSelectionModal'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
 import { Select } from '@/components/ui/Select'
 import { useToast } from '@/context/ToastContext'
 import { authService } from '@/services/auth.service'
-import { dmService } from '@/services/dm.service'
 import { marketService } from '@/services/market.service'
 import { teamsService } from '@/services/teams.service'
 import { MarketPost } from '@/types/market'
+import { Team } from '@/types/teams'
 import { router, useFocusEffect } from 'expo-router'
 import { MessageCircle, Plus, Shield, User, Users } from 'lucide-react-native'
 import React, { useCallback, useState } from 'react'
@@ -32,6 +33,8 @@ export default function MarketScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [modalVisible, setModalVisible] = useState(false)
+  const [teamSelectionVisible, setTeamSelectionVisible] = useState(false)
+  const [selectedPost, setSelectedPost] = useState<MarketPost | null>(null)
 
   // Filters
   const [selectedPosition, setSelectedPosition] = useState<string>('ANY')
@@ -121,7 +124,7 @@ export default function MarketScreen() {
     
     try {
       if (post.type === 'TEAM_SEEKING_PLAYER' && post.team_id) {
-        // Chat con equipo - usar el nuevo servicio de team chat
+        // CASO 1: Equipo busca jugador - el jugador contacta al equipo
         const { teamChatService } = await import('@/services/team-chat.service')
         const res = await teamChatService.getOrCreateTeamConversation(post.team_id, currentUserId)
         
@@ -130,25 +133,70 @@ export default function MarketScreen() {
         } else {
           showToast(res.error || 'Error al iniciar chat con el equipo', 'error')
         }
-      } else {
-        // Chat individual - usar el servicio DM existente
-        const targetUserId = post.user_id
-        if (!targetUserId) return
-
-        const res = await dmService.getOrCreateConversation(targetUserId)
+      } else if (post.type === 'PLAYER_SEEKING_TEAM') {
+        // CASO 2: Jugador busca equipo - un equipo quiere contactar al jugador
         
-        if (res.success && res.data) {
-          router.push(`/chat/${res.data.id}`)
-        } else {
-          showToast('Error al iniciar chat', 'error')
+        // Verificar qué equipos administro
+        const managedTeamsRes = await teamsService.getUserManagedTeams(currentUserId)
+        
+        if (!managedTeamsRes.success || !managedTeamsRes.data || managedTeamsRes.data.length === 0) {
+          showToast('Solo los capitanes pueden contactar jugadores', 'error')
+          return
         }
+        
+        const managedTeams = managedTeamsRes.data
+        
+        if (managedTeams.length === 1) {
+          // Solo administro un equipo, usar automáticamente
+          await createTeamToPlayerConversation(post, managedTeams[0])
+        } else {
+          // Administro múltiples equipos, mostrar modal de selección
+          setSelectedPost(post)
+          setTeamSelectionVisible(true)
+        }
+      } else {
+        showToast('Tipo de publicación no reconocido', 'error')
       }
     } catch (error) {
       console.error('Error in handleContact:', error)
       showToast('Error inesperado', 'error')
     } finally {
-      setLoading(false)
+      if (post.type !== 'PLAYER_SEEKING_TEAM' || !selectedPost) {
+        setLoading(false)
+      }
     }
+  }
+  
+  async function createTeamToPlayerConversation(post: MarketPost, fromTeam: Team) {
+    if (!currentUserId || !post.user_id) return
+    
+    try {
+      const { teamChatService } = await import('@/services/team-chat.service')
+      const res = await teamChatService.getOrCreateTeamToPlayerConversation(
+        fromTeam.id, 
+        currentUserId, 
+        post.user_id
+      )
+      
+      if (res.success && res.data) {
+        router.push(`/chat/${res.data}`)
+      } else {
+        showToast(res.error || 'Error al iniciar chat', 'error')
+      }
+    } catch (error) {
+      console.error('Error creating team conversation:', error)
+      showToast('Error inesperado', 'error')
+    } finally {
+      setLoading(false)
+      setSelectedPost(null)
+    }
+  }
+  
+  function handleTeamSelection(team: Team) {
+    if (selectedPost) {
+      createTeamToPlayerConversation(selectedPost, team)
+    }
+    setTeamSelectionVisible(false)
   }
 
   function handleViewStats(post: MarketPost) {
@@ -262,6 +310,17 @@ export default function MarketScreen() {
             loadPosts()
             setModalVisible(false)
           }}
+        />
+        
+        <TeamSelectionModal
+          visible={teamSelectionVisible}
+          onClose={() => {
+            setTeamSelectionVisible(false)
+            setSelectedPost(null)
+            setLoading(false)
+          }}
+          onSelectTeam={handleTeamSelection}
+          userId={currentUserId || ''}
         />
       </View>
     </ScreenLayout>

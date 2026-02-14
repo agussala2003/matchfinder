@@ -124,26 +124,80 @@ export default function ChatScreen() {
                 {!isMe && (
                     <View className='mr-2 justify-end pb-1'>
                         <View className='w-8 h-8 bg-card rounded-full items-center justify-center border border-border overflow-hidden'>
-                            {conversation?.other_user?.avatar_url ? (
-                                <Image
-                                    source={{ uri: conversation.other_user.avatar_url }}
-                                    className='w-full h-full'
-                                    resizeMode='cover'
-                                />
-                            ) : (
-                                <Text className='text-muted-foreground font-bold text-sm'>
-                                    {conversation?.other_user?.full_name?.[0] || '?'}
-                                </Text>
-                            )}
+                            {(() => {
+                                if (conversation?.chat_type === 'TEAM_PLAYER' && conversation?.team_info) {
+                                    // Es un chat jugador-equipo, determinar qué avatar mostrar
+                                    // Si yo soy el player_id, entonces el equipo me está escribiendo
+                                    // Si yo soy parte del team_id, entonces le estoy escribiendo al jugador
+                                    const imThePlayer = userId === conversation.player_id;
+                                    
+                                    if (imThePlayer) {
+                                        // SOY EL JUGADOR: Los mensajes del equipo pueden venir de diferentes miembros
+                                        // Usar el logo del equipo como avatar
+                                        return conversation?.team_info?.logo_url ? (
+                                            <Image
+                                                source={{ uri: conversation.team_info.logo_url }}
+                                                className='w-full h-full'
+                                                resizeMode='cover'
+                                            />
+                                        ) : (
+                                            <Text className='text-muted-foreground font-bold text-sm'>
+                                                {conversation?.team_info?.name?.[0] || 'E'}
+                                            </Text>
+                                        )
+                                    } else {
+                                        // SOY PARTE DEL EQUIPO: Mostrar avatar del JUGADOR
+                                        return conversation?.other_user?.avatar_url ? (
+                                            <Image
+                                                source={{ uri: conversation.other_user.avatar_url }}
+                                                className='w-full h-full'
+                                                resizeMode='cover'
+                                            />
+                                        ) : (
+                                            <Text className='text-muted-foreground font-bold text-sm'>
+                                                {conversation?.other_user?.full_name?.[0] || 'J'}
+                                            </Text>
+                                        )
+                                    }
+                                } else {
+                                    // Chat directo normal
+                                    return conversation?.other_user?.avatar_url ? (
+                                        <Image
+                                            source={{ uri: conversation.other_user.avatar_url }}
+                                            className='w-full h-full'
+                                            resizeMode='cover'
+                                        />
+                                    ) : (
+                                        <Text className='text-muted-foreground font-bold text-sm'>
+                                            {conversation?.other_user?.full_name?.[0] || '?'}
+                                        </Text>
+                                    )
+                                }
+                            })()}
                         </View>
                     </View>
                 )}
 
                 <View className='max-w-[75%]'>
-                    {/* Nombre del usuario (solo para el otro) */}
+                    {/* Nombre del usuario con lógica asimétrica */}
                     {!isMe && (
                         <Text className='text-primary text-xs font-bold mb-1 ml-1'>
-                            {conversation?.other_user?.full_name}
+                            {(() => {
+                                if (conversation?.chat_type === 'TEAM_PLAYER' && conversation?.team_info) {
+                                    const imThePlayer = userId === conversation.player_id;
+                                    
+                                    if (imThePlayer) {
+                                        // SOY EL JUGADOR: Mostrar "Miembro del equipo" o nombre específico si disponible
+                                        return `${conversation?.team_info?.name} - Equipo`
+                                    } else {
+                                        // SOY PARTE DEL EQUIPO: Mostrar nombre del JUGADOR
+                                        return conversation?.other_user?.full_name || conversation?.other_user?.username || 'Jugador'
+                                    }
+                                } else {
+                                    // Chat directo normal
+                                    return conversation?.other_user?.full_name || conversation?.other_user?.username || 'Usuario'
+                                }
+                            })()}
                         </Text>
                     )}
 
@@ -196,46 +250,104 @@ export default function ChatScreen() {
                     <ArrowLeft size={24} color='#FBFBFB' strokeWidth={2.5} />
                 </TouchableOpacity>
 
-                {/* Avatar */}
+                {/* LÓGICA ASIMÉTRICA - Avatar */}
                 <View className='w-11 h-11 bg-secondary rounded-full overflow-hidden border border-border items-center justify-center'>
-                    {conversation?.chat_type === 'TEAM_PLAYER' && conversation?.team_info?.logo_url ? (
-                        <Image
-                            source={{ uri: conversation.team_info.logo_url }}
-                            className='w-full h-full'
-                            resizeMode='cover'
-                        />
-                    ) : conversation?.other_user?.avatar_url ? (
-                        <Image
-                            source={{ uri: conversation.other_user.avatar_url }}
-                            className='w-full h-full'
-                            resizeMode='cover'
-                        />
-                    ) : (
-                        <Text className='text-muted-foreground font-bold text-xl'>
-                            {conversation?.chat_type === 'TEAM_PLAYER'
-                                ? (conversation?.team_info?.name?.[0] || 'E')
-                                : (conversation?.other_user?.full_name?.[0] || '?')
+                    {(() => {
+                        if (conversation?.chat_type === 'TEAM_PLAYER' && conversation?.team_info) {
+                            // Es un chat jugador-equipo, determinar qué mostrar
+                            const imThePlayer = userId === conversation.player_id;
+                            
+                            if (imThePlayer) {
+                                // SOY EL JUGADOR: Mostrar logo del EQUIPO
+                                return conversation?.team_info?.logo_url ? (
+                                    <Image
+                                        source={{ uri: conversation.team_info.logo_url }}
+                                        className='w-full h-full'
+                                        resizeMode='cover'
+                                    />
+                                ) : (
+                                    <Text className='text-muted-foreground font-bold text-xl'>
+                                        {conversation?.team_info?.name?.[0] || 'E'}
+                                    </Text>
+                                )
+                            } else {
+                                // SOY PARTE DEL EQUIPO: Mostrar foto del JUGADOR
+                                return conversation?.other_user?.avatar_url ? (
+                                    <Image
+                                        source={{ uri: conversation.other_user.avatar_url }}
+                                        className='w-full h-full'
+                                        resizeMode='cover'
+                                    />
+                                ) : (
+                                    <Text className='text-muted-foreground font-bold text-xl'>
+                                        {conversation?.other_user?.full_name?.[0] || 'J'}
+                                    </Text>
+                                )
                             }
-                        </Text>
-                    )}
+                        } else {
+                            // Chat directo normal
+                            return conversation?.other_user?.avatar_url ? (
+                                <Image
+                                    source={{ uri: conversation.other_user.avatar_url }}
+                                    className='w-full h-full'
+                                    resizeMode='cover'
+                                />
+                            ) : (
+                                <Text className='text-muted-foreground font-bold text-xl'>
+                                    {conversation?.other_user?.full_name?.[0] || '?'}
+                                </Text>
+                            )
+                        }
+                    })()}
                 </View>
 
+                {/* LÓGICA ASIMÉTRICA - Nombre y subtexto */}
                 <View className='flex-1 min-w-0'>
-                    <Text className='text-foreground font-bold text-base' numberOfLines={1}>
-                        {conversation?.chat_type === 'TEAM_PLAYER'
-                            ? conversation?.team_info?.name || 'Equipo'
-                            : (conversation?.other_user?.full_name || 'Usuario')
+                    {(() => {
+                        if (conversation?.chat_type === 'TEAM_PLAYER' && conversation?.team_info) {
+                            const imThePlayer = userId === conversation.player_id;
+                            
+                            if (imThePlayer) {
+                                // SOY EL JUGADOR: Mostrar nombre del EQUIPO
+                                return (
+                                    <>
+                                        <Text className='text-foreground font-bold text-base' numberOfLines={1}>
+                                            {conversation?.team_info?.name || 'Equipo'}
+                                        </Text>
+                                        <Text className='text-muted-foreground text-xs'>
+                                            {conversation?.team_info?.category} • {conversation?.team_info?.home_zone}
+                                        </Text>
+                                    </>
+                                )
+                            } else {
+                                // SOY PARTE DEL EQUIPO: Mostrar nombre del JUGADOR
+                                return (
+                                    <>
+                                        <Text className='text-foreground font-bold text-base' numberOfLines={1}>
+                                            {conversation?.other_user?.full_name || 'Jugador'}
+                                        </Text>
+                                        {conversation?.other_user?.username ? (
+                                            <Text className='text-muted-foreground text-xs'>@{conversation.other_user.username}</Text>
+                                        ) : (
+                                            <Text className='text-muted-foreground text-xs'>Interesado en el equipo</Text>
+                                        )}
+                                    </>
+                                )
+                            }
+                        } else {
+                            // Chat directo normal
+                            return (
+                                <>
+                                    <Text className='text-foreground font-bold text-base' numberOfLines={1}>
+                                        {conversation?.other_user?.full_name || 'Usuario'}
+                                    </Text>
+                                    {conversation?.other_user?.username && (
+                                        <Text className='text-muted-foreground text-xs'>@{conversation.other_user.username}</Text>
+                                    )}
+                                </>
+                            )
                         }
-                    </Text>
-                    {conversation?.chat_type === 'TEAM_PLAYER' ? (
-                        <Text className='text-muted-foreground text-xs'>
-                            {conversation?.team_info?.category} • {conversation?.team_info?.home_zone}
-                        </Text>
-                    ) : (
-                        conversation?.other_user?.username && (
-                            <Text className='text-muted-foreground text-xs'>@{conversation.other_user.username}</Text>
-                        )
-                    )}
+                    })()}
                 </View>
             </View>
 

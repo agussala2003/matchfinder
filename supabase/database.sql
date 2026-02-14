@@ -15,24 +15,27 @@ CREATE TABLE public.challenges (
 );
 CREATE TABLE public.conversations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  participant_a uuid NOT NULL,
-  participant_b uuid NOT NULL,
-  last_message_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  chat_type text NOT NULL DEFAULT 'DIRECT'::text CHECK (chat_type = ANY (ARRAY['DIRECT'::text, 'TEAM_PLAYER'::text])),
+  team_id uuid,
+  player_id uuid,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  last_message_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT conversations_pkey PRIMARY KEY (id),
-  CONSTRAINT conversations_participant_a_fkey FOREIGN KEY (participant_a) REFERENCES public.profiles(id),
-  CONSTRAINT conversations_participant_b_fkey FOREIGN KEY (participant_b) REFERENCES public.profiles(id)
+  CONSTRAINT conversations_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
+  CONSTRAINT conversations_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.direct_messages (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   conversation_id uuid NOT NULL,
   sender_id uuid NOT NULL,
+  sender_team_id uuid,
   content text NOT NULL,
   is_read boolean DEFAULT false,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT direct_messages_pkey PRIMARY KEY (id),
   CONSTRAINT direct_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversations(id),
-  CONSTRAINT direct_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.profiles(id)
+  CONSTRAINT direct_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.profiles(id),
+  CONSTRAINT direct_messages_sender_team_id_fkey FOREIGN KEY (sender_team_id) REFERENCES public.teams(id)
 );
 CREATE TABLE public.market_posts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -66,8 +69,8 @@ CREATE TABLE public.match_messages (
 );
 CREATE TABLE public.match_results (
   match_id uuid NOT NULL,
-  goals_a integer DEFAULT 0,
-  goals_b integer DEFAULT 0,
+  goals_a integer DEFAULT 0 CHECK (goals_a >= 0 AND goals_a <= 50),
+  goals_b integer DEFAULT 0 CHECK (goals_b >= 0 AND goals_b <= 50),
   is_draw boolean DEFAULT false,
   confirmed_by_a boolean DEFAULT false,
   confirmed_by_b boolean DEFAULT false,
@@ -110,7 +113,7 @@ CREATE TABLE public.player_stats (
   match_id uuid,
   user_id uuid,
   team_id uuid,
-  goals integer DEFAULT 0,
+  goals integer DEFAULT 0 CHECK (goals >= 0 AND goals <= 30),
   is_mvp boolean DEFAULT false,
   CONSTRAINT player_stats_pkey PRIMARY KEY (id),
   CONSTRAINT player_stats_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id),

@@ -4,53 +4,41 @@ import { ServiceResponse } from '@/types/core'
 class TeamChatService {
     /**
      * Crear o obtener una conversación entre un jugador y un equipo
+     * Usado cuando un JUGADOR contacta a un EQUIPO
      */
     async getOrCreateTeamConversation(teamId: string, playerId: string): Promise<ServiceResponse<string>> {
         try {
-            // 1. Obtener el capitán del equipo
+            // 1. Verificar que el equipo existe
             const { data: teamData, error: teamError } = await supabase
-                .from('team_members')
-                .select(`
-                    user_id,
-                    teams!inner (
-                        id,
-                        name,
-                        logo_url
-                    )
-                `)
-                .eq('team_id', teamId)
-                .eq('role', 'ADMIN')
+                .from('teams')
+                .select('id, name')
+                .eq('id', teamId)
                 .single()
 
             if (teamError || !teamData) {
-                return { success: false, error: 'No se encontró el capitán del equipo' }
+                return { success: false, error: 'No se encontró el equipo' }
             }
 
-            const captainId = teamData.user_id
-
             // 2. Verificar si ya existe una conversación TEAM_PLAYER para este jugador y equipo
-            const [p1, p2] = [playerId, captainId].sort()
-            
             const { data: existing } = await supabase
                 .from('conversations')
                 .select('*')
                 .eq('chat_type', 'TEAM_PLAYER')
-                .eq('team_context_id', teamId)
-                .or(`and(participant_a.eq.${p1},participant_b.eq.${p2})`)
-                .single()
+                .eq('team_id', teamId)
+                .eq('player_id', playerId)
+                .maybeSingle()
 
             if (existing) {
                 return { success: true, data: existing.id }
             }
 
-            // 3. Crear nueva conversación de equipo
+            // 3. Crear nueva conversación de equipo-jugador
             const { data: newConv, error: createError } = await supabase
                 .from('conversations')
                 .insert({
-                    participant_a: p1,
-                    participant_b: p2,
                     chat_type: 'TEAM_PLAYER',
-                    team_context_id: teamId
+                    team_id: teamId,
+                    player_id: playerId
                 })
                 .select()
                 .single()
@@ -58,16 +46,64 @@ class TeamChatService {
             if (createError) throw createError
             return { success: true, data: newConv.id }
         } catch (error: any) {
+            console.error('getOrCreateTeamConversation error:', error)
             return { success: false, error: error.message }
         }
     }
 
     /**
-     * Ya no es necesario este método, la información del equipo viene directamente de la BD
+     * Crear o obtener una conversación donde un EQUIPO contacta a un JUGADOR
+     * Usado cuando un EQUIPO quiere contactar a un jugador que busca equipo
      */
-    async enrichConversationWithTeamInfo(conversationId: string, currentUserId: string): Promise<ServiceResponse<any>> {
-        // Método obsoleto - la nueva estructura de BD ya incluye esta información
-        return { success: false, error: 'Método obsoleto' }
+    async getOrCreateTeamToPlayerConversation(
+        teamId: string, 
+        teamAdminId: string, 
+        targetPlayerId: string
+    ): Promise<ServiceResponse<string>> {
+        try {
+            // 1. Verificar que el usuario es admin del equipo
+            const { data: membership, error: memberError } = await supabase
+                .from('team_members')
+                .select('role')
+                .eq('team_id', teamId)
+                .eq('user_id', teamAdminId)
+                .eq('role', 'ADMIN')
+                .single()
+
+            if (memberError || !membership) {
+                return { success: false, error: 'No tienes permisos para contactar en nombre de este equipo' }
+            }
+
+            // 2. Verificar si ya existe una conversación TEAM_PLAYER para este equipo y jugador
+            const { data: existing } = await supabase
+                .from('conversations')
+                .select('*')
+                .eq('chat_type', 'TEAM_PLAYER')
+                .eq('team_id', teamId)
+                .eq('player_id', targetPlayerId)
+                .maybeSingle()
+
+            if (existing) {
+                return { success: true, data: existing.id }
+            }
+
+            // 3. Crear nueva conversación de equipo-jugador
+            const { data: newConv, error: createError } = await supabase
+                .from('conversations')
+                .insert({
+                    chat_type: 'TEAM_PLAYER',
+                    team_id: teamId,
+                    player_id: targetPlayerId
+                })
+                .select()
+                .single()
+
+            if (createError) throw createError
+            return { success: true, data: newConv.id }
+        } catch (error: any) {
+            console.error('getOrCreateTeamToPlayerConversation error:', error)
+            return { success: false, error: error.message }
+        }
     }
 }
 

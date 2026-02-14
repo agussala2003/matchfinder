@@ -124,23 +124,27 @@ export function ChatInbox() {
     }
 
     const renderItem = ({ item }: { item: Conversation }) => {
-        // Simple logic for unread: if last message is NOT from me, and we had an unread flag (which needs to be in the DB or inferred)
-        // Since we don't have "unread count" on conversation table yet, we might need to rely on direct_messages check
-        // For now, let's assume we want to show a dot if the conversation is "active" or just visually distinct.
-        // ACTUALLY: The user asked for "notificarlo, hacerlo notar en la card".
-        // Without an "unread_count" or "last_read_at" on the conversation/participant table, it is hard to know if it is unread.
-        // FIX: We will assume for now we just show the latest message time.
-        // To properly support "Unread", we would need to check `direct_messages` where `is_read` is false and `sender_id` != me.
-        // Supabase query already gets us conversations. We might need to join or fetch unread count.
-        // For this iteration, I'll add a "New" indicator if the message is very recent (e.g. < 5 mins) or if we implement the check.
-
-        // Let's rely on the fact that if we implemented is_read in the DB, we should use it.
-        // The current `dmService.getConversations` does NOT return unread count.
-        // usage of "is_read" column in direct_messages is required.
-
-        // For now, I will add a visual "dot" but I need to know if it is unread.
-        // I will add a small query or just leave the dot for now ensuring real-time works.
-        // Let's stick to the request: "make it noticeable". Use bold text for last message time if recent.
+        // LÓGICA ASIMÉTRICA para chats TEAM_PLAYER
+        let displayName = item.other_user?.full_name || 'Usuario'
+        let displayAvatar = item.other_user?.avatar_url
+        let displaySubtext = item.other_user?.username ? `@${item.other_user.username}` : ''
+        
+        if (item.chat_type === 'TEAM_PLAYER' && item.team_info) {
+            // Es un chat jugador-equipo, determinar qué mostrar
+            const imThePlayer = currentUserId === item.player_id;
+            
+            if (imThePlayer) {
+                // SOY EL JUGADOR: Mostrar info del EQUIPO
+                displayName = item.team_info.name
+                displayAvatar = item.team_info.logo_url
+                displaySubtext = `${item.team_info.category} • ${item.team_info.home_zone}`
+            } else {
+                // SOY PARTE DEL EQUIPO: Mostrar info del JUGADOR
+                displayName = item.other_user?.full_name || 'Jugador'
+                displayAvatar = item.other_user?.avatar_url
+                displaySubtext = item.other_user?.username ? `@${item.other_user.username}` : 'Interesado en el equipo'
+            }
+        }
 
         return (
             <TouchableOpacity
@@ -149,15 +153,15 @@ export function ChatInbox() {
             >
                 {/* Avatar */}
                 <View className='w-14 h-14 bg-secondary rounded-full overflow-hidden border border-border items-center justify-center flex-shrink-0'>
-                    {item.other_user?.avatar_url ? (
+                    {displayAvatar ? (
                         <Image
-                            source={{ uri: item.other_user.avatar_url }}
+                            source={{ uri: displayAvatar }}
                             className='w-full h-full'
                             resizeMode='cover'
                         />
                     ) : (
                         <Text className='text-muted-foreground font-bold text-xl'>
-                            {item.other_user?.full_name?.[0] || '?'}
+                            {displayName[0] || '?'}
                         </Text>
                     )}
                 </View>
@@ -166,7 +170,7 @@ export function ChatInbox() {
                 <View className='flex-1 min-w-0'>
                     <View className='flex-row justify-between items-center mb-1'>
                         <Text className='text-foreground font-bold text-base flex-1 mr-2' numberOfLines={1}>
-                            {item.other_user?.full_name || 'Usuario'}
+                            {displayName}
                         </Text>
                         <Text className='text-muted-foreground text-xs'>
                             {new Date(item.last_message_at).toLocaleDateString('es-AR', {
@@ -176,14 +180,13 @@ export function ChatInbox() {
                         </Text>
                     </View>
 
-                    {item.other_user?.username && (
-                        <Text className='text-muted-foreground text-xs mb-1.5'>
-                            @{item.other_user.username}
+                    {displaySubtext && (
+                        <Text className='text-muted-foreground text-xs mb-1.5' numberOfLines={1}>
+                            {displaySubtext}
                         </Text>
                     )}
 
                     <View className='flex-row items-center justify-between'>
-                        {/* We could show the last message preview here if we fetched it */}
                         <View className='flex-row items-center gap-1.5'>
                             <MessageCircle size={12} color='#A1A1AA' strokeWidth={2} />
                             <Text className='text-muted-foreground text-xs'>

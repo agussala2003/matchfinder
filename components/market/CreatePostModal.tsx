@@ -11,7 +11,9 @@ import { Briefcase, User, Users, X } from 'lucide-react-native'
 import React, { useEffect, useState } from 'react'
 import {
     ActivityIndicator,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     Text,
     TextInput,
@@ -114,9 +116,14 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
     return (
         <Modal visible={visible} transparent animationType='slide' onRequestClose={onClose}>
             <View className='flex-1 bg-black/80 justify-end'>
-                <View
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     className='bg-modal rounded-t-3xl border-t-2 border-border overflow-hidden'
-                    style={{ maxHeight: '90%', paddingBottom: Math.max(insets.bottom, 20) }}
+                    style={{ 
+                        paddingBottom: Math.max(insets.bottom, 20),
+                        maxHeight: '90%',
+                        minHeight: '60%'
+                    }}
                 >
                     {/* Header */}
                     <View className='flex-row items-center justify-between px-6 py-4 border-b border-border'>
@@ -131,7 +138,7 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView className='flex-1' contentContainerStyle={{ padding: 24 }}>
+                    <ScrollView className='flex-1' contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
                         {/* Tipo de Publicación */}
                         <View className='mb-6'>
                             <Text className='text-muted-foreground text-xs font-bold mb-3 ml-1 uppercase tracking-wide'>
@@ -272,7 +279,7 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
                         />
                         <Button title='Cancelar' variant='secondary' onPress={onClose} />
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </View>
         </Modal>
     )

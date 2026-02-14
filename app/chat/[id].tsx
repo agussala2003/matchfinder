@@ -2,6 +2,7 @@ import { useToast } from '@/context/ToastContext'
 import { supabase } from '@/lib/supabase'
 import { authService } from '@/services/auth.service'
 import { Conversation, DirectMessage, dmService } from '@/services/dm.service'
+
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { ArrowLeft, Send } from 'lucide-react-native'
 import React, { useEffect, useRef, useState } from 'react'
@@ -36,40 +37,42 @@ export default function ChatScreen() {
     const flatListRef = useRef<FlatList>(null)
 
     useEffect(() => {
-        loadChat()
-        setupRealtime()
+        let isMounted = true
 
-        return () => {
-            supabase.removeChannel(supabase.channel(`dm-${conversationId}`))
+        async function setup() {
+            setLoading(true)
+            const session = await authService.getSession()
+            const uid = session.data?.user?.id
+
+            if (!isMounted) return
+            if (!uid) {
+                setLoading(false)
+                return
+            }
+
+            setUserId(uid)
+
+            // Load Chat Data
+            const convRes = await dmService.getConversationById(conversationId)
+            if (isMounted && convRes.success && convRes.data) {
+                setConversation(convRes.data)
+            } else if (isMounted) {
+                showToast('Error al cargar chat', 'error')
+            }
+
+            const msgRes = await dmService.getMessages(conversationId)
+            if (isMounted && msgRes.success && msgRes.data) {
+                setMessages(msgRes.data)
+            }
+
+            if (isMounted) setLoading(false)
         }
-    }, [conversationId])
 
-    async function loadChat() {
-        setLoading(true)
-        const session = await authService.getSession()
-        const uid = session.data?.user?.id
-        if (!uid) return
+        setup()
 
-        setUserId(uid)
+        // Setup Realtime Subscription (simplified like match chat)
+        if (!conversationId) return
 
-        // Load Conversation Details
-        const convRes = await dmService.getConversationById(conversationId)
-        if (convRes.success && convRes.data) {
-            setConversation(convRes.data)
-        } else {
-            showToast('Error al cargar chat', 'error')
-        }
-
-        // Load Messages
-        const msgRes = await dmService.getMessages(conversationId)
-        if (msgRes.success && msgRes.data) {
-            setMessages(msgRes.data)
-        }
-
-        setLoading(false)
-    }
-
-    function setupRealtime() {
         const channel = supabase
             .channel(`dm-${conversationId}`)
             .on(
@@ -81,15 +84,22 @@ export default function ChatScreen() {
                     filter: `conversation_id=eq.${conversationId}`,
                 },
                 (payload) => {
-                    const newMsg = payload.new as DirectMessage
-                    setMessages((prev) => {
-                        if (prev.find((m) => m.id === newMsg.id)) return prev
-                        return [newMsg, ...prev]
-                    })
-                },
+                    console.log('[Chat] New message received via Realtime:', payload.new)
+                    setMessages((prev) => [payload.new as DirectMessage, ...prev])
+                }
             )
-            .subscribe()
-    }
+            .subscribe((status) => {
+                console.log(`[Chat] Subscription status for dm-${conversationId}:`, status)
+            })
+
+        return () => {
+            isMounted = false
+            supabase.removeChannel(channel)
+        }
+    }, [conversationId, showToast])
+
+    // Helper functions moved inside effect or kept if pure, but logic is now inside setup()
+    // We removed loadChat and setupRealtime standalone functions to avoid race conditions and closure staleness
 
     async function handleSend() {
         if (!inputText.trim() || sending) return
@@ -188,7 +198,13 @@ export default function ChatScreen() {
 
                 {/* Avatar */}
                 <View className='w-11 h-11 bg-secondary rounded-full overflow-hidden border border-border items-center justify-center'>
-                    {conversation?.other_user?.avatar_url ? (
+                    {conversation?.chat_type === 'TEAM_PLAYER' && conversation?.team_info?.logo_url ? (
+                        <Image
+                            source={{ uri: conversation.team_info.logo_url }}
+                            className='w-full h-full'
+                            resizeMode='cover'
+                        />
+                    ) : conversation?.other_user?.avatar_url ? (
                         <Image
                             source={{ uri: conversation.other_user.avatar_url }}
                             className='w-full h-full'
@@ -196,17 +212,29 @@ export default function ChatScreen() {
                         />
                     ) : (
                         <Text className='text-muted-foreground font-bold text-xl'>
-                            {conversation?.other_user?.full_name?.[0] || '?'}
+                            {conversation?.chat_type === 'TEAM_PLAYER'
+                                ? (conversation?.team_info?.name?.[0] || 'E')
+                                : (conversation?.other_user?.full_name?.[0] || '?')
+                            }
                         </Text>
                     )}
                 </View>
 
                 <View className='flex-1 min-w-0'>
                     <Text className='text-foreground font-bold text-base' numberOfLines={1}>
-                        {conversation?.other_user?.full_name || 'Usuario'}
+                        {conversation?.chat_type === 'TEAM_PLAYER'
+                            ? conversation?.team_info?.name || 'Equipo'
+                            : (conversation?.other_user?.full_name || 'Usuario')
+                        }
                     </Text>
-                    {conversation?.other_user?.username && (
-                        <Text className='text-muted-foreground text-xs'>@{conversation.other_user.username}</Text>
+                    {conversation?.chat_type === 'TEAM_PLAYER' ? (
+                        <Text className='text-muted-foreground text-xs'>
+                            {conversation?.team_info?.category} • {conversation?.team_info?.home_zone}
+                        </Text>
+                    ) : (
+                        conversation?.other_user?.username && (
+                            <Text className='text-muted-foreground text-xs'>@{conversation.other_user.username}</Text>
+                        )
                     )}
                 </View>
             </View>

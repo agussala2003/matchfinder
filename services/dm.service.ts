@@ -4,6 +4,8 @@ export interface Conversation {
     id: string
     participant_a: string
     participant_b: string
+    team_context_id: string | null
+    chat_type: 'DIRECT' | 'TEAM_PLAYER'
     last_message_at: string
     created_at: string
     other_user?: {
@@ -11,6 +13,13 @@ export interface Conversation {
         full_name: string
         username: string
         avatar_url: string
+    }
+    team_info?: {
+        id: string
+        name: string
+        logo_url: string
+        category: string
+        home_zone: string
     }
 }
 
@@ -33,10 +42,11 @@ export const dmService = {
             // Ensure consistent ordering to check existence
             const [p1, p2] = [user.id, otherUserId].sort()
 
-            // 1. Check if exists
+            // 1. Check if exists (only direct chats)
             const { data: existing, error: fetchError } = await supabase
                 .from('conversations')
                 .select('*')
+                .eq('chat_type', 'DIRECT')
                 .or(`and(participant_a.eq.${p1},participant_b.eq.${p2})`)
                 .single()
 
@@ -47,7 +57,8 @@ export const dmService = {
                 .from('conversations')
                 .insert({
                     participant_a: p1,
-                    participant_b: p2
+                    participant_b: p2,
+                    chat_type: 'DIRECT'
                 })
                 .select()
                 .single()
@@ -69,7 +80,10 @@ export const dmService = {
                 .select(`
                     *,
                     user_a:participant_a (id, full_name, username, avatar_url),
-                    user_b:participant_b (id, full_name, username, avatar_url)
+                    user_b:participant_b (id, full_name, username, avatar_url),
+                    team_info:team_context_id (
+                        id, name, logo_url, category, home_zone
+                    )
                 `)
                 .eq('id', id)
                 .single()
@@ -81,7 +95,8 @@ export const dmService = {
 
             const conversationData: Conversation = {
                 ...data,
-                other_user: otherUser
+                other_user: otherUser,
+                team_info: data.team_info || undefined
             }
 
             return { success: true, data: conversationData }

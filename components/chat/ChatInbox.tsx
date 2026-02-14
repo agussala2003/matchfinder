@@ -2,9 +2,10 @@ import { useToast } from '@/context/ToastContext'
 import { supabase } from '@/lib/supabase'
 import { authService } from '@/services/auth.service'
 import { Conversation, dmService } from '@/services/dm.service'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { router, useFocusEffect } from 'expo-router'
 import { MessageCircle, Trash2 } from 'lucide-react-native'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import {
     ActivityIndicator,
     Alert,
@@ -24,47 +25,70 @@ export function ChatInbox() {
 
     const { showToast } = useToast()
 
+    // SECURITY FIX (Task 0.3): useRef to store channel reference for proper cleanup
+    // This prevents memory leaks by ensuring we can remove the exact channel instance
+    const channelRef = useRef<RealtimeChannel | null>(null)
+
     useFocusEffect(
         useCallback(() => {
-            loadConversations()
-            const subscription = setupRealtime()
+            let isMounted = true
+
+            async function setup() {
+                loadConversations()
+
+                // Realtime setup with race condition protection
+                const session = await authService.getSession()
+                if (!isMounted) return
+
+                const uid = session.data?.user?.id
+                if (!uid) return
+
+                setCurrentUserId(uid)
+
+                // Clean up any existing channel before creating a new one (safety net)
+                if (channelRef.current) {
+                    supabase.removeChannel(channelRef.current)
+                    channelRef.current = null
+                }
+
+                // Create new channel
+                const channel = supabase.channel(`inbox-${uid}`)
+                channelRef.current = channel
+
+                channel
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'direct_messages',
+                            // SECURITY (Task 0.5): We rely on Supabase RLS policies to filter messages.
+                            // The policy "Users can view messages in their conversations" ensures
+                            // we only receive events for messages where we are participants.
+                        },
+                        (payload) => {
+                            // When a new message arrives, reload conversations to update order and unread status
+                            console.log('New message received via realtime', payload)
+                            if (isMounted) {
+                                loadConversations()
+                            }
+                        },
+                    )
+                    .subscribe()
+            }
+
+            setup()
 
             return () => {
-                subscription.then((sub) => sub?.unsubscribe())
+                isMounted = false
+                // SECURITY FIX: Proper cleanup of Realtime channel
+                if (channelRef.current) {
+                    supabase.removeChannel(channelRef.current)
+                    channelRef.current = null
+                }
             }
         }, []),
     )
-
-    async function setupRealtime() {
-        const session = await authService.getSession()
-        const uid = session.data?.user?.id
-        if (!uid) return null
-
-        setCurrentUserId(uid)
-
-        // Listen for new messages in ANY conversation where I am a participant
-        // Note: Row Level Security must allow me to receive these events
-        const channel = supabase
-            .channel('public:direct_messages')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'direct_messages',
-                },
-                (payload) => {
-                    // When a new message arrives, reload conversations to update order and unread status
-                    // Optimization: We could manually update the state, but reloading ensures consistency
-                    // We only reload if the message is related to us (RLS should filter, but double check)
-                    console.log('New message received via realtime', payload)
-                    loadConversations()
-                },
-            )
-            .subscribe()
-
-        return channel
-    }
 
     async function loadConversations() {
         if (!refreshing) setLoading(true)

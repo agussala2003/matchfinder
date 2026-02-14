@@ -3,7 +3,7 @@ import { useToast } from '@/context/ToastContext'
 import { chatService } from '@/services/chat.service'
 import { storageService } from '@/services/storage.service'
 import DateTimePicker from '@react-native-community/datetimepicker'
-import { differenceInHours } from 'date-fns'
+import { differenceInHours, format } from 'date-fns'
 import * as ImagePicker from 'expo-image-picker'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import {
@@ -187,8 +187,6 @@ export default function MatchScreen() {
   }
 
   const formatTime = (iso: string) => {
-    // Re-import format locally if needed, but imported at top level
-    const { format } = require('date-fns')
     return format(new Date(iso), 'HH:mm')
   }
 

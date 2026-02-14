@@ -116,17 +116,38 @@ export default function MarketScreen() {
       showToast('Debes iniciar sesión', 'error')
       return
     }
-    const targetUserId = post.user_id
-    if (!targetUserId) return
 
     setLoading(true)
-    const res = await dmService.getOrCreateConversation(targetUserId)
-    setLoading(false)
+    
+    try {
+      if (post.type === 'TEAM_SEEKING_PLAYER' && post.team_id) {
+        // Chat con equipo - usar el nuevo servicio de team chat
+        const { teamChatService } = await import('@/services/team-chat.service')
+        const res = await teamChatService.getOrCreateTeamConversation(post.team_id, currentUserId)
+        
+        if (res.success && res.data) {
+          router.push(`/chat/${res.data}`)
+        } else {
+          showToast(res.error || 'Error al iniciar chat con el equipo', 'error')
+        }
+      } else {
+        // Chat individual - usar el servicio DM existente
+        const targetUserId = post.user_id
+        if (!targetUserId) return
 
-    if (res.success && res.data) {
-      router.push(`/chat/${res.data.id}`)
-    } else {
-      showToast('Error al iniciar chat', 'error')
+        const res = await dmService.getOrCreateConversation(targetUserId)
+        
+        if (res.success && res.data) {
+          router.push(`/chat/${res.data.id}`)
+        } else {
+          showToast('Error al iniciar chat', 'error')
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleContact:', error)
+      showToast('Error inesperado', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 

@@ -17,6 +17,7 @@ export interface MarketPost {
         name: string
         logo_url?: string
         home_zone?: string
+        category?: string // Added for UI display
     }
     profile?: {
         id: string

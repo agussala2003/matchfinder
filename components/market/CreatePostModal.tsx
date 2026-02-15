@@ -20,7 +20,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 interface CreatePostModalProps {
     visible: boolean
@@ -35,7 +34,6 @@ const POSITIONS = POSICIONES_LISTA.map((key) => ({
 
 export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModalProps) {
     const { showToast } = useToast()
-    const insets = useSafeAreaInsets()
 
     const [loading, setLoading] = useState(false)
     const [type, setType] = useState<MarketPostType>('PLAYER_SEEKING_TEAM')

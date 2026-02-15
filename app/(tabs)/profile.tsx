@@ -14,8 +14,10 @@ import { UserProfile } from '@/types/auth'
 import { Team } from '@/types/teams'
 
 // Componentes
+import { PlayerStatsModal } from '@/components/profile'
 import { ProfileHeader } from '@/components/profile/ProfileHeader'
 import { StatsGrid } from '@/components/profile/StatsGrid'
+import { TeamStatsModal } from '@/components/teams'
 import { TeamCard } from '@/components/teams/TeamCard'
 import { Button } from '@/components/ui/Button'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
@@ -30,9 +32,11 @@ export default function ProfileScreen() {
   const [myRequests, setMyRequests] = useState<OutgoingRequest[]>([])
 
   // UI States
-  // UI States
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [showPlayerStatsModal, setShowPlayerStatsModal] = useState(false)
+  const [showTeamStatsModal, setShowTeamStatsModal] = useState(false)
+  const [selectedTeamForStats, setSelectedTeamForStats] = useState<Team | null>(null)
 
   const [userStats, setUserStats] = useState({ matches: 0, goals: 0, wins: 0, mvps: 0 })
 
@@ -136,6 +140,7 @@ export default function ProfileScreen() {
             goals={userStats.goals}
             wins={userStats.wins}
             mvps={userStats.mvps}
+            onPress={() => setShowPlayerStatsModal(true)}
           />
         </View>
 
@@ -153,7 +158,17 @@ export default function ProfileScreen() {
 
           <View className='gap-2'>
             {teams.length > 0 ? (
-              teams.map((item) => <TeamCard key={item.id} team={item} onCreatePress={() => { }} />)
+              teams.map((item) => (
+                <TeamCard 
+                  key={item.id} 
+                  team={item} 
+                  onCreatePress={() => {}} 
+                  onViewStats={(team) => {
+                    setSelectedTeamForStats(team)
+                    setShowTeamStatsModal(true)
+                  }}
+                />
+              ))
             ) : (
               <TeamCard team={null} onCreatePress={() => router.push('/create-team')} />
             )}
@@ -233,6 +248,27 @@ export default function ProfileScreen() {
 
         <Text className='text-center text-text-muted text-xs'>MatchFinder v1.0.4</Text>
       </View>
+
+      {/* Player Stats Modal */}
+      {profile && (
+        <PlayerStatsModal
+          visible={showPlayerStatsModal}
+          onClose={() => setShowPlayerStatsModal(false)}
+          userId={profile.id}
+        />
+      )}
+
+      {/* Team Stats Modal */}
+      {selectedTeamForStats && (
+        <TeamStatsModal
+          visible={showTeamStatsModal}
+          onClose={() => {
+            setShowTeamStatsModal(false)
+            setSelectedTeamForStats(null)
+          }}
+          teamId={selectedTeamForStats.id}
+        />
+      )}
     </ScreenLayout>
   )
 }

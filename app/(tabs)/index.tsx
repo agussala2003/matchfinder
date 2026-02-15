@@ -13,14 +13,11 @@ import { UserProfile } from '@/types/auth'
 export default function HomeScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [nextMatch, setNextMatch] = useState<MatchPreview | null>(null)
-  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
 
   const loadData = useCallback(async () => {
     try {
-      if (!refreshing) setLoading(true)
-
       // 1. Get Profile
       const session = await authService.getSession()
       const userId = session.data?.user?.id
@@ -48,10 +45,9 @@ export default function HomeScreen() {
     } catch (e) {
       console.error(e)
     } finally {
-      setLoading(false)
       setRefreshing(false)
     }
-  }, [refreshing])
+  }, [])
 
   useFocusEffect(
     useCallback(() => {

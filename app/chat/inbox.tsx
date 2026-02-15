@@ -21,13 +21,7 @@ export default function ChatInboxScreen() {
 
     const { showToast } = useToast()
 
-    useFocusEffect(
-        useCallback(() => {
-            loadConversations()
-        }, []),
-    )
-
-    async function loadConversations() {
+    const loadConversations = useCallback(async () => {
         if (!refreshing) setLoading(true)
         const res = await dmService.getConversations()
         if (res.success && res.data) {
@@ -35,7 +29,13 @@ export default function ChatInboxScreen() {
         }
         setLoading(false)
         setRefreshing(false)
-    }
+    }, [refreshing])
+
+    useFocusEffect(
+        useCallback(() => {
+            loadConversations()
+        }, [loadConversations]),
+    )
 
     async function handleDelete(id: string) {
         Alert.alert(

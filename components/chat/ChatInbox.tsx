@@ -1,3 +1,4 @@
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { useToast } from '@/context/ToastContext'
 import { supabase } from '@/lib/supabase'
 import { authService } from '@/services/auth.service'
@@ -8,7 +9,6 @@ import { MessageCircle, Shield, Trash2, User } from 'lucide-react-native'
 import React, { useCallback, useRef, useState } from 'react'
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     Image,
     RefreshControl,
@@ -22,9 +22,21 @@ export function ChatInbox() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null)
 
   const { showToast } = useToast()
   const channelRef = useRef<RealtimeChannel | null>(null)
+
+  const loadConversations = useCallback(async () => {
+    if (!refreshing) setLoading(true)
+    const res = await dmService.getConversations()
+    if (res.success && res.data) {
+      setConversations(res.data)
+    }
+    setLoading(false)
+    setRefreshing(false)
+  }, [refreshing])
 
   useFocusEffect(
     useCallback(() => {
@@ -77,36 +89,27 @@ export function ChatInbox() {
           channelRef.current = null
         }
       }
-    }, []),
+    }, [loadConversations]),
   )
 
-  async function loadConversations() {
-    if (!refreshing) setLoading(true)
-    const res = await dmService.getConversations()
-    if (res.success && res.data) {
-      setConversations(res.data)
-    }
-    setLoading(false)
-    setRefreshing(false)
+  function handleDelete(id: string) {
+    setConversationToDelete(id)
+    setShowDeleteModal(true)
   }
 
-  async function handleDelete(id: string) {
-    Alert.alert('Eliminar chat', '¿Estás seguro de que quieres eliminar esta conversación?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          const res = await dmService.deleteConversation(id)
-          if (res.success) {
-            showToast('Chat eliminado', 'success')
-            setConversations((prev) => prev.filter((c) => c.id !== id))
-          } else {
-            showToast('Error al eliminar chat', 'error')
-          }
-        },
-      },
-    ])
+  async function confirmDelete() {
+    if (!conversationToDelete) return
+    
+    const res = await dmService.deleteConversation(conversationToDelete)
+    if (res.success) {
+      showToast('Chat eliminado', 'success')
+      setConversations((prev) => prev.filter((c) => c.id !== conversationToDelete))
+    } else {
+      showToast('Error al eliminar chat', 'error')
+    }
+    
+    setShowDeleteModal(false)
+    setConversationToDelete(null)
   }
 
   const renderItem = ({ item }: { item: Conversation }) => {
@@ -239,6 +242,16 @@ export function ChatInbox() {
             </Text>
           </View>
         }
+      />
+      
+      <ConfirmationModal
+        visible={showDeleteModal}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+        title="Eliminar chat"
+        message="¿Estás seguro de que quieres eliminar esta conversación?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
       />
     </View>
   )

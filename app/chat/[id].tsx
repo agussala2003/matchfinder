@@ -39,6 +39,7 @@ const AnimatedMessageItem = ({ item, userId, conversation }: { item: any, userId
                 useNativeDriver: true,
             })
         ]).start()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const isMe = item.sender_id === userId

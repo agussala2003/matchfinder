@@ -3,7 +3,7 @@ import { useToast } from '@/context/ToastContext'
 import { teamsService } from '@/services/teams.service'
 import { Team } from '@/types/teams'
 import { ChevronRight, Shield, Users, X } from 'lucide-react-native'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
     ActivityIndicator,
     Image,
@@ -13,7 +13,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 interface TeamSelectionModalProps {
   visible: boolean
@@ -29,18 +28,11 @@ export function TeamSelectionModal({
   userId,
 }: TeamSelectionModalProps) {
   const { showToast } = useToast()
-  const insets = useSafeAreaInsets()
 
   const [loading, setLoading] = useState(false)
   const [managedTeams, setManagedTeams] = useState<Team[]>([])
 
-  useEffect(() => {
-    if (visible && userId) {
-      loadManagedTeams()
-    }
-  }, [visible, userId])
-
-  async function loadManagedTeams() {
+  const loadManagedTeams = useCallback(async () => {
     setLoading(true)
     try {
       const res = await teamsService.getUserManagedTeams(userId)
@@ -49,12 +41,18 @@ export function TeamSelectionModal({
       } else {
         showToast('Error al cargar equipos', 'error')
       }
-    } catch (error) {
+    } catch {
       showToast('Error inesperado', 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId, showToast])
+
+  useEffect(() => {
+    if (visible && userId) {
+      loadManagedTeams()
+    }
+  }, [visible, userId, loadManagedTeams])
 
   const handleSelectTeam = (team: Team) => {
     onSelectTeam(team)

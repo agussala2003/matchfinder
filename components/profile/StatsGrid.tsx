@@ -1,19 +1,20 @@
 import { Card } from '@/components/ui/Card'
 import { Target, TrendingUp, Trophy } from 'lucide-react-native'
 import React from 'react'
-import { Text, View } from 'react-native'
+import { Text, TouchableOpacity, View } from 'react-native'
 
 interface StatsGridProps {
   matches: number
   goals: number
   wins: number
   mvps: number
+  onPress?: () => void
 }
 
 // Falta cargar las estadisticas reales desde el backend
-export function StatsGrid({ matches, goals, wins, mvps }: StatsGridProps) {
-  return (
-    <Card className='flex-row justify-between py-4'>
+export function StatsGrid({ matches, goals, wins, mvps, onPress }: StatsGridProps) {
+  const content = (
+    <View className='flex-row justify-between py-4'>
       <StatItem icon={<Trophy size={20} color='#FBBF24' />} value={wins.toString()} label='Victorias' />
       <View className='w-[1px] bg-border h-10 self-center' />
       <StatItem icon={<Target size={20} color='#39FF14' />} value={goals.toString()} label='Goles' />
@@ -21,8 +22,23 @@ export function StatsGrid({ matches, goals, wins, mvps }: StatsGridProps) {
       <StatItem icon={<TrendingUp size={20} color='#A855F7' />} value={matches.toString()} label='Partidos' />
       <View className='w-[1px] bg-border h-10 self-center' />
       <StatItem icon={<Trophy size={20} color='#EF4444' />} value={mvps.toString()} label='MVPs' />
-    </Card>
+    </View>
   )
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        <Card className=''>
+          {content}
+          <Text className='text-primary text-xs text-center -mt-2 mb-2 font-semibold'>
+            Toca para ver estadísticas detalladas
+          </Text>
+        </Card>
+      </TouchableOpacity>
+    )
+  }
+
+  return <Card className=''>{content}</Card>
 }
 
 const StatItem = ({ icon, value, label }: { icon: any; value: string; label: string }) => (

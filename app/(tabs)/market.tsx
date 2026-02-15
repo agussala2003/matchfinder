@@ -2,9 +2,12 @@ import { ChatInbox } from '@/components/chat/ChatInbox'
 import { CreatePostModal } from '@/components/market/CreatePostModal'
 import { MarketPostCard } from '@/components/market/MarketPostCard'
 import { TeamSelectionModal } from '@/components/market/TeamSelectionModal'
+import { PlayerStatsModal } from '@/components/profile'
+import { TeamStatsModal } from '@/components/teams'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
 import { Select } from '@/components/ui/Select'
 import { useToast } from '@/context/ToastContext'
+import { POSICIONES_ARGENTINAS, POSICIONES_LISTA } from '@/lib/constants'
 import { authService } from '@/services/auth.service'
 import { marketService } from '@/services/market.service'
 import { teamsService } from '@/services/teams.service'
@@ -15,13 +18,10 @@ import { MessageCircle, Plus, Shield, User, Users } from 'lucide-react-native'
 import React, { useCallback, useState } from 'react'
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native'
 
-const POSITIONS = [
-  { label: 'Cualquiera', value: 'ANY' },
-  { label: 'Arquero', value: 'Arquero' },
-  { label: 'Defensor', value: 'Defensor' },
-  { label: 'Mediocampista', value: 'Mediocampista' },
-  { label: 'Delantero', value: 'Delantero' },
-]
+const POSITIONS = POSICIONES_LISTA.map(key => ({
+  label: POSICIONES_ARGENTINAS[key],
+  value: key,
+}))
 
 type Tab = 'PLAYERS' | 'TEAMS' | 'MESSAGES'
 
@@ -36,6 +36,12 @@ export default function MarketScreen() {
   const [teamSelectionVisible, setTeamSelectionVisible] = useState(false)
   const [selectedPost, setSelectedPost] = useState<MarketPost | null>(null)
 
+  // Stats Modals
+  const [showPlayerStatsModal, setShowPlayerStatsModal] = useState(false)
+  const [showTeamStatsModal, setShowTeamStatsModal] = useState(false)
+  const [statsUserId, setStatsUserId] = useState<string | null>(null)
+  const [statsTeamId, setStatsTeamId] = useState<string | null>(null)
+
   // Filters
   const [selectedPosition, setSelectedPosition] = useState<string>('ANY')
 
@@ -49,27 +55,7 @@ export default function MarketScreen() {
     }, [])
   )
 
-  useFocusEffect(
-    useCallback(() => {
-      if (activeTab !== 'MESSAGES') {
-        loadPosts()
-      }
-    }, [activeTab, selectedPosition, currentUserId, myTeamIds.length])
-  )
-
-  async function checkUser() {
-    const session = await authService.getSession()
-    if (session.data?.user) {
-      const uid = session.data.user.id
-      setCurrentUserId(uid)
-      const teamsRes = await teamsService.getUserTeams(uid)
-      if (teamsRes.success && teamsRes.data) {
-        setMyTeamIds(teamsRes.data.map(t => t.id))
-      }
-    }
-  }
-
-  async function loadPosts() {
+  const loadPosts = useCallback(async () => {
     setLoading(true)
     // Map Tab to Filter Type:
     // 'PLAYERS' Tab -> Display posts where TEAMS are seeking players (TEAM_SEEKING_PLAYER)
@@ -102,6 +88,26 @@ export default function MarketScreen() {
     }
     setLoading(false)
     setRefreshing(false)
+  }, [activeTab, selectedPosition, currentUserId, myTeamIds])
+
+  useFocusEffect(
+    useCallback(() => {
+      if (activeTab !== 'MESSAGES') {
+        loadPosts()
+      }
+    }, [activeTab, loadPosts])
+  )
+
+  async function checkUser() {
+    const session = await authService.getSession()
+    if (session.data?.user) {
+      const uid = session.data.user.id
+      setCurrentUserId(uid)
+      const teamsRes = await teamsService.getUserTeams(uid)
+      if (teamsRes.success && teamsRes.data) {
+        setMyTeamIds(teamsRes.data.map(t => t.id))
+      }
+    }
   }
 
   async function handleDelete(id: string) {
@@ -199,7 +205,17 @@ export default function MarketScreen() {
   }
 
   function handleViewStats(post: MarketPost) {
-    showToast('Ver Perfil: Próximamente', 'info')
+    if (post.type === 'TEAM_SEEKING_PLAYER' && post.team_id) {
+      // Es un equipo, mostrar estadísticas del equipo
+      setStatsTeamId(post.team_id)
+      setShowTeamStatsModal(true)
+    } else if (post.type === 'PLAYER_SEEKING_TEAM' && post.user_id) {
+      // Es un jugador, mostrar estadísticas del jugador
+      setStatsUserId(post.user_id)
+      setShowPlayerStatsModal(true)
+    } else {
+      showToast('No se pudo cargar las estadísticas', 'error')
+    }
   }
 
   return (
@@ -321,6 +337,29 @@ export default function MarketScreen() {
           onSelectTeam={handleTeamSelection}
           userId={currentUserId || ''}
         />
+
+        {/* Stats Modals */}
+        {statsUserId && (
+          <PlayerStatsModal
+            visible={showPlayerStatsModal}
+            onClose={() => {
+              setShowPlayerStatsModal(false)
+              setStatsUserId(null)
+            }}
+            userId={statsUserId}
+          />
+        )}
+
+        {statsTeamId && (
+          <TeamStatsModal
+            visible={showTeamStatsModal}
+            onClose={() => {
+              setShowTeamStatsModal(false)
+              setStatsTeamId(null)
+            }}
+            teamId={statsTeamId}
+          />
+        )}
       </View>
     </ScreenLayout>
   )

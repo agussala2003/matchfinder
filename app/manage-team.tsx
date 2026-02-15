@@ -18,6 +18,7 @@ import { ActiveMembersSection } from '@/components/manage-team/ActiveMembersSect
 import { PendingRequestsSection } from '@/components/manage-team/PendingRequestsSection'
 import { ShareCodeSection } from '@/components/manage-team/ShareCodeSection'
 import { TeamHeader } from '@/components/manage-team/TeamHeader'
+import { TeamStatsModal } from '@/components/teams'
 import { EditTeamModal } from '@/components/teams/EditTeamModal'
 import { MemberActionModal } from '@/components/teams/MemberActionModal'
 import { Button } from '@/components/ui/Button'
@@ -41,6 +42,7 @@ export default function ManageTeamScreen() {
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [showMemberModal, setShowMemberModal] = useState(false)
   const [showEditTeamModal, setShowEditTeamModal] = useState(false)
+  const [showStatsModal, setShowStatsModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMemberDetail | null>(null)
 
   useEffect(() => {
@@ -322,13 +324,22 @@ export default function ManageTeamScreen() {
           onMemberPress={openMemberOptions}
         />
 
-        <Button
-          title="Abandonar Equipo"
-          variant="danger"
-          onPress={() => setShowLeaveModal(true)}
-          icon={<LogOut size={20} color="#EF4444" strokeWidth={2.5} />}
-          className="mt-2"
-        />
+        {/* Team Actions */}
+        <View className="gap-3 mt-2">
+          <Button
+            title="Ver Estadísticas del Equipo"
+            variant="secondary"
+            onPress={() => setShowStatsModal(true)}
+            icon={<Text className="text-2xl">📊</Text>}
+          />
+          
+          <Button
+            title="Abandonar Equipo"
+            variant="danger"
+            onPress={() => setShowLeaveModal(true)}
+            icon={<LogOut size={20} color="#EF4444" strokeWidth={2.5} />}
+          />
+        </View>
       </View>
 
       {/* MODALS */}
@@ -362,6 +373,15 @@ export default function ManageTeamScreen() {
           team={team}
           onSave={handleUpdateTeamInfo}
           onCancel={() => setShowEditTeamModal(false)}
+        />
+      )}
+
+      {/* Team Stats Modal */}
+      {team && (
+        <TeamStatsModal
+          visible={showStatsModal}
+          onClose={() => setShowStatsModal(false)}
+          teamId={team.id}
         />
       )}
     </ScreenLayout>

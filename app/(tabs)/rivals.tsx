@@ -45,12 +45,57 @@ export default function RivalsScreen() {
     }, []),
   )
 
+  /**
+   * Carga matches activos para challenges aceptados
+   */
+  const loadActiveMatches = useCallback(
+    async (teamId: string, acceptedChallenges: Challenge[]) => {
+      const newMatches = new Map<string, MatchDetail>()
+
+      for (const challenge of acceptedChallenges) {
+        const otherTeamId =
+          challenge.challenger_team_id === teamId
+            ? challenge.target_team_id
+            : challenge.challenger_team_id
+
+        const matchRes = await matchesService.getActiveMatchBetweenTeams(teamId, otherTeamId)
+        if (matchRes.success && matchRes.data) {
+          newMatches.set(otherTeamId, matchRes.data)
+        }
+      }
+
+      setActiveMatches(newMatches)
+    },
+    []
+  )
+
+  const fetchRivals = useCallback(
+    async (teamId: string, query?: string, zone?: string) => {
+      //Actualizar a 5 con casos de prueba mas pronto
+      const res = await challengesService.searchRivals(teamId, query, zone)
+      if (res.data) {
+        const validRivals = res.data.filter((t: any) => (t.member_count || 0) >= 2)
+        setRivals(validRivals)
+      }
+    },
+    []
+  )
+
+  const fetchChallenges = useCallback(async (teamId: string) => {
+    const res = await challengesService.getMyChallenges(teamId)
+    if (res.data) {
+      setMyChallenges(res.data.filter((c) => c.status !== 'CANCELLED'))
+      // Cargar matches activos para challenges aceptados
+      await loadActiveMatches(teamId, res.data.filter((c) => c.status === 'ACCEPTED'))
+    }
+  }, [loadActiveMatches])
+
   React.useEffect(() => {
     if (currentTeam && activeTab === 'EXPLORE') {
       fetchRivals(currentTeam.id, searchQuery, selectedZone)
       fetchChallenges(currentTeam.id)
     }
-  }, [searchQuery, selectedZone, currentTeam, activeTab])
+  }, [searchQuery, selectedZone, currentTeam, activeTab, fetchRivals, fetchChallenges])
 
   async function loadData() {
     try {
@@ -87,51 +132,6 @@ export default function RivalsScreen() {
     const me = membersRes.data?.find((m) => m.user_id === userId)
     setCanManage(me?.role === UserRole.ADMIN || me?.role === UserRole.SUB_ADMIN)
   }
-
-  const fetchRivals = useCallback(
-    async (teamId: string, query?: string, zone?: string) => {
-      //Actualizar a 5 con casos de prueba mas pronto
-      const res = await challengesService.searchRivals(teamId, query, zone)
-      if (res.data) {
-        const validRivals = res.data.filter((t: any) => (t.member_count || 0) >= 2)
-        setRivals(validRivals)
-      }
-    },
-    []
-  )
-
-  const fetchChallenges = useCallback(async (teamId: string) => {
-    const res = await challengesService.getMyChallenges(teamId)
-    if (res.data) {
-      setMyChallenges(res.data.filter((c) => c.status !== 'CANCELLED'))
-      // Cargar matches activos para challenges aceptados
-      await loadActiveMatches(teamId, res.data.filter((c) => c.status === 'ACCEPTED'))
-    }
-  }, [])
-
-  /**
-   * Carga matches activos para challenges aceptados
-   */
-  const loadActiveMatches = useCallback(
-    async (teamId: string, acceptedChallenges: Challenge[]) => {
-      const newMatches = new Map<string, MatchDetail>()
-
-      for (const challenge of acceptedChallenges) {
-        const otherTeamId =
-          challenge.challenger_team_id === teamId
-            ? challenge.target_team_id
-            : challenge.challenger_team_id
-
-        const matchRes = await matchesService.getActiveMatchBetweenTeams(teamId, otherTeamId)
-        if (matchRes.success && matchRes.data) {
-          newMatches.set(otherTeamId, matchRes.data)
-        }
-      }
-
-      setActiveMatches(newMatches)
-    },
-    []
-  )
 
   async function fetchTeamMembers(teamId: string) {
     try {

@@ -1,0 +1,1 @@
+export { TeamStatsModal } from './TeamStatsModal';

@@ -1,13 +1,13 @@
 import { MatchPreview } from '@/services/matches.service'
-import { router } from 'expo-router'
+import { RelativePathString, router } from 'expo-router'
 import {
-    AlertCircle,
-    ChevronRight,
-    Clock,
-    MapPin,
-    MessageCircle,
-    Shield,
-    Zap,
+  AlertCircle,
+  ChevronRight,
+  Clock,
+  MapPin,
+  MessageCircle,
+  Shield,
+  Zap,
 } from 'lucide-react-native'
 import React from 'react'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
@@ -24,7 +24,8 @@ export const MatchCard = ({ match, myTeamId, canManage }: MatchCardProps) => {
   const isFinished = match.status === 'FINISHED'
 
   // Notificación: último mensaje del rival
-  const hasNotification = match.last_message && match.last_message.sender_team_id !== myTeamId
+  const hasNotification =
+    canManage && match.last_message && match.last_message.sender_team_id !== myTeamId
 
   const getStatusBadge = () => {
     if (isLive) {
@@ -45,7 +46,7 @@ export const MatchCard = ({ match, myTeamId, canManage }: MatchCardProps) => {
   }
 
   const handlePress = () => {
-    router.push(`/match/${match.id}` as any)
+    router.push(`/match/${match.id}` as RelativePathString)
   }
 
   return (

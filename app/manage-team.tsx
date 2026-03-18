@@ -1,9 +1,10 @@
+import { PageLoader } from '@/components/ui/PageLoader'
 import * as Clipboard from 'expo-clipboard'
 import * as ImagePicker from 'expo-image-picker'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { LogOut } from 'lucide-react-native'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 
 // Services & Context
 import { useToast } from '@/context/ToastContext'
@@ -253,9 +254,7 @@ export default function ManageTeamScreen() {
             headerTitleStyle: { fontFamily: 'Inter_700Bold' },
           }}
         />
-        <View className='flex-1 items-center justify-center'>
-          <ActivityIndicator size='large' color='#39FF14' />
-        </View>
+        <PageLoader visible={true} />
       </ScreenLayout>
     )
   }

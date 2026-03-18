@@ -1,5 +1,38 @@
 import { supabase } from '@/lib/supabase'
 import { ServiceResponse } from '@/types/core'
+import { Tables } from '@/types/supabase'
+
+type MatchMessageRow = Tables<'match_messages'>
+type ProfileRow = Tables<'profiles'>
+
+function toChatMessage(
+  row: MatchMessageRow,
+  profile: Pick<ProfileRow, 'full_name' | 'username'> | null,
+): ChatMessage {
+  return {
+    id: row.id,
+    match_id: row.match_id,
+    sender_team_id: row.sender_team_id,
+    content: row.content ?? '',
+    type: row.type === 'PROPOSAL' ? 'PROPOSAL' : 'TEXT',
+    proposal_data:
+      row.proposal_data && typeof row.proposal_data === 'object' && !Array.isArray(row.proposal_data)
+        ? (row.proposal_data as ChatMessage['proposal_data'])
+        : undefined,
+    status:
+      row.status === 'ACCEPTED' || row.status === 'REJECTED' || row.status === 'CANCELLED'
+        ? row.status
+        : 'SENT',
+    created_at: row.created_at ?? '',
+    sender_user_id: row.sender_user_id ?? undefined,
+    profile: profile
+      ? {
+          full_name: profile.full_name,
+          username: profile.username ?? '',
+        }
+      : undefined,
+  }
+}
 
 export interface ChatMessage {
   id: string
@@ -25,18 +58,39 @@ class ChatService {
     try {
       const { data, error } = await supabase
         .from('match_messages')
-        .select(`
-          *,
-          profile:sender_user_id (
-            full_name,
-            username
-          )
-        `)
+        .select('*')
         .eq('match_id', matchId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return { success: true, data: data as any[] }
+
+      const rows = (data ?? []) as MatchMessageRow[]
+      const senderIds = Array.from(
+        new Set(rows.map((row) => row.sender_user_id).filter((id): id is string => Boolean(id))),
+      )
+
+      let profilesById = new Map<string, Pick<ProfileRow, 'full_name' | 'username'>>()
+
+      if (senderIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, username')
+          .in('id', senderIds)
+
+        if (profilesError) throw profilesError
+
+        profilesById = new Map(
+          (profiles ?? []).map((profile) => [
+            profile.id,
+            { full_name: profile.full_name, username: profile.username },
+          ]),
+        )
+      }
+
+      return {
+        success: true,
+        data: rows.map((row) => toChatMessage(row, row.sender_user_id ? profilesById.get(row.sender_user_id) ?? null : null)),
+      }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }

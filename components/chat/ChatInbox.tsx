@@ -1,20 +1,20 @@
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import { PageLoader } from '@/components/ui/PageLoader'
 import { useToast } from '@/context/ToastContext'
 import { supabase } from '@/lib/supabase'
 import { authService } from '@/services/auth.service'
 import { Conversation, dmService } from '@/services/dm.service'
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { router, useFocusEffect } from 'expo-router'
+import { RelativePathString, router, useFocusEffect } from 'expo-router'
 import { MessageCircle, Shield, Trash2, User } from 'lucide-react-native'
 import React, { useCallback, useRef, useState } from 'react'
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    RefreshControl,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native'
 
 export function ChatInbox() {
@@ -71,7 +71,7 @@ export function ChatInbox() {
               schema: 'public',
               table: 'direct_messages',
             },
-            (payload) => {
+            () => {
               if (isMounted) {
                 loadConversations()
               }
@@ -113,6 +113,10 @@ export function ChatInbox() {
   }
 
   const renderItem = ({ item }: { item: Conversation }) => {
+    const hasUnread = item.has_unread === true
+    const unreadCount = item.unread_count ?? 0
+    const lastMessageText = item.last_message_preview?.trim() || 'Ver conversación'
+
     // Lógica asimétrica para chats TEAM_PLAYER
     let displayName = item.other_user?.full_name || 'Usuario'
     let displayAvatar = item.other_user?.avatar_url
@@ -140,7 +144,7 @@ export function ChatInbox() {
 
     return (
       <TouchableOpacity
-        onPress={() => router.push(`/chat/${item.id}` as any)}
+        onPress={() => router.push(`/chat/${item.id}` as RelativePathString)}
         className='bg-card p-4 rounded-xl border border-border mb-3 flex-row items-center gap-4 active:bg-secondary/30'
       >
         {/* Avatar */}
@@ -165,16 +169,25 @@ export function ChatInbox() {
 
         {/* Info */}
         <View className='flex-1 min-w-0'>
-          <View className='flex-row items-center justify-between mb-1.5'>
+          <View className='flex-row items-start justify-between mb-1.5'>
             <Text className='text-foreground font-bold text-base flex-1 mr-2' numberOfLines={1}>
               {displayName}
             </Text>
-            <Text className='text-muted-foreground text-xs'>
-              {new Date(item.last_message_at).toLocaleDateString('es-AR', {
-                day: '2-digit',
-                month: 'short',
-              })}
-            </Text>
+            <View className='items-end'>
+              <Text className='text-muted-foreground text-xs'>
+                {new Date(item.last_message_at).toLocaleDateString('es-AR', {
+                  day: '2-digit',
+                  month: 'short',
+                })}
+              </Text>
+              {hasUnread && (
+                <View className='mt-1 min-w-5 h-5 px-1 rounded-full bg-primary items-center justify-center'>
+                  <Text className='text-background text-[10px] font-bold'>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
 
           {displaySubtext && (
@@ -185,7 +198,14 @@ export function ChatInbox() {
 
           <View className='flex-row items-center gap-1.5'>
             <MessageCircle size={12} color='#00D54B' strokeWidth={2} />
-            <Text className='text-primary text-xs font-medium'>Ver conversación</Text>
+            <Text
+              className={`text-xs ${
+                hasUnread ? 'text-foreground font-bold' : 'text-primary font-medium'
+              }`}
+              numberOfLines={1}
+            >
+              {lastMessageText}
+            </Text>
           </View>
         </View>
 
@@ -204,11 +224,7 @@ export function ChatInbox() {
   }
 
   if (loading && !refreshing) {
-    return (
-      <View className='flex-1 items-center justify-center pt-20'>
-        <ActivityIndicator size='large' color='#00D54B' />
-      </View>
-    )
+    return <PageLoader visible={true} />
   }
 
   return (

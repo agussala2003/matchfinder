@@ -50,9 +50,9 @@ class TeamChatService {
 
             if (createError) throw createError
             return { success: true, data: newConv.id }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('getOrCreateTeamToPlayerConversation error:', error)
-            return { success: false, error: error.message }
+            return { success: false, error: (error as Error).message }
         }
     }
 
@@ -98,8 +98,8 @@ class TeamChatService {
 
             if (createError) throw createError
             return { success: true, data: newConv.id }
-        } catch (error: any) {
-            return { success: false, error: error.message }
+        } catch (error: unknown) {
+            return { success: false, error: (error as Error).message }
         }
     }
 }

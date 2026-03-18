@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/Button'
+import { PageLoader } from '@/components/ui/PageLoader'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
 import { useToast } from '@/context/ToastContext'
 import { ZONAS_AMBA } from '@/lib/constants'
@@ -11,7 +12,7 @@ import { UserRole } from '@/types/core'
 import { Team } from '@/types/teams'
 import { router, useFocusEffect } from 'expo-router'
 import React, { useCallback, useState } from 'react'
-import { ActivityIndicator, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 
 // Components
 import { ChallengesList, RivalsList, SearchFilters, TabButton } from '@/components/rivals-list'
@@ -74,7 +75,7 @@ export default function RivalsScreen() {
       //Actualizar a 5 con casos de prueba mas pronto
       const res = await challengesService.searchRivals(teamId, query, zone)
       if (res.data) {
-        const validRivals = res.data.filter((t: any) => (t.member_count || 0) >= 2)
+        const validRivals = res.data.filter((t) => (t.member_count || 0) >= 2)
         setRivals(validRivals)
       }
     },
@@ -260,11 +261,7 @@ export default function RivalsScreen() {
 
   // --- RENDER ---
   if (loading && !refreshing)
-    return (
-      <View className='flex-1 bg-background items-center justify-center'>
-        <ActivityIndicator color='#39FF14' />
-      </View>
-    )
+    return <PageLoader visible={true} />
 
   if (!currentTeam) {
     return (
@@ -380,6 +377,7 @@ export default function RivalsScreen() {
         onCancel={() =>
           selectedRival && handleCancelChallenge(getActiveChallengeId(selectedRival.id)!)
         }
+        activeMatchId={selectedRival ? activeMatches.get(selectedRival.id)?.id : undefined}
         relationship={selectedRival ? getRelationship(selectedRival.id) : 'NONE'}
       />
     </ScreenLayout>

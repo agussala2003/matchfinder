@@ -103,7 +103,7 @@ export function TeamSelectionModal({
           ) : (
             <ScrollView className='flex-1' contentContainerStyle={{ padding: 16 }}>
               <View className='gap-3'>
-                {managedTeams.map((team, index) => (
+                {managedTeams.map((team) => (
                   <TouchableOpacity
                     key={team.id}
                     onPress={() => handleSelectTeam(team)}

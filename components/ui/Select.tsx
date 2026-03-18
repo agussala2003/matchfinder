@@ -11,7 +11,7 @@ interface SelectProps {
   label: string
   value: string
   options: SelectOption[]
-  onChange: (value: any) => void
+  onChange: (value: string) => void
   placeholder?: string
   error?: string
   disabled?: boolean

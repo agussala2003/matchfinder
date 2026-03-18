@@ -1,14 +1,15 @@
+import { PageLoader } from '@/components/ui/PageLoader'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, StatusBar, View } from 'react-native'
+import { StatusBar } from 'react-native'
 import '../global.css'
 
 // Fuentes
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_700Bold,
-  useFonts,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_700Bold,
+    useFonts,
 } from '@expo-google-fonts/inter'
 
 // Supabase
@@ -16,6 +17,7 @@ import { supabase } from '@/lib/supabase'
 import { Session } from '@supabase/supabase-js'
 
 // Contexto de Toasts
+import { GlobalLoadingProvider } from '@/context/GlobalLoadingContext'
 import { ToastProvider } from '@/context/ToastContext'
 
 // Navigation Theme
@@ -76,31 +78,29 @@ export default function RootLayout() {
   }, [session, segments, initialized, fontsLoaded, router])
 
   if (!initialized || !fontsLoaded) {
-    return (
-      <View className='flex-1 bg-background items-center justify-center'>
-        <ActivityIndicator size='large' color='#00D54B' />
-      </View>
-    )
+    return <PageLoader visible={true} />
   }
 
   return (
     <ThemeProvider value={MyDarkTheme}>
-      <ToastProvider>
-        {/* StatusBar 'light' hace que los iconos (hora, batería) sean blancos */}
-        <StatusBar barStyle='light-content' backgroundColor={APP_BACKGROUND} />
+      <GlobalLoadingProvider>
+        <ToastProvider>
+          {/* StatusBar 'light' hace que los iconos (hora, batería) sean blancos */}
+          <StatusBar barStyle='light-content' backgroundColor={APP_BACKGROUND} />
 
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: APP_BACKGROUND },
-          }}
-        >
-          <Stack.Screen name='(tabs)' />
-          <Stack.Screen name='login' />
-          <Stack.Screen name='onboarding' />
-          <Stack.Screen name='forgot-password' />
-        </Stack>
-      </ToastProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: APP_BACKGROUND },
+            }}
+          >
+            <Stack.Screen name='(tabs)' />
+            <Stack.Screen name='login' />
+            <Stack.Screen name='onboarding' />
+            <Stack.Screen name='forgot-password' />
+          </Stack>
+        </ToastProvider>
+      </GlobalLoadingProvider>
     </ThemeProvider>
   )
 }

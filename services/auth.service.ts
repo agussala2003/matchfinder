@@ -1,18 +1,40 @@
 import { supabase } from '@/lib/supabase'
 import {
-  AuthCredentials,
-  AuthErrorCode,
-  AuthResponse,
-  ProfileCheckResult,
-  ProfileData,
-  ProfileResponse,
-  UserProfile,
-  authCredentialsSchema,
-  profileDataSchema,
+    AuthCredentials,
+    AuthErrorCode,
+    AuthResponse,
+    ProfileCheckResult,
+    ProfileData,
+    ProfileResponse,
+    UserProfile,
+    authCredentialsSchema,
+    profileDataSchema,
 } from '@/types/auth'
 import { ServiceResponse } from '@/types/core'
+import { Enums, Tables, TablesInsert } from '@/types/supabase'
 import { AuthError } from '@supabase/supabase-js'
 import { ZodError } from 'zod'
+
+type ProfileRow = Tables<'profiles'>
+type ProfileInsert = TablesInsert<'profiles'>
+type PositionEnum = Enums<'posicion_enum'>
+
+function toUserProfile(profile: ProfileRow): UserProfile {
+  return {
+    id: profile.id,
+    username: profile.username ?? '',
+    full_name: profile.full_name,
+    position: profile.position ?? undefined,
+    avatar_url: profile.avatar_url ?? undefined,
+    reputation: profile.reputation ?? undefined,
+    created_at: profile.created_at ?? undefined,
+  }
+}
+
+function toPositionEnum(value: string | undefined): PositionEnum {
+  if (value === 'GK' || value === 'DEF' || value === 'MID' || value === 'FWD') return value
+  return 'ANY'
+}
 
 class AuthService {
   /**
@@ -134,7 +156,7 @@ class AuthService {
 
       if (error || !profile) return { exists: false, isComplete: false }
       const isComplete = Boolean(profile.username && profile.full_name)
-      return { exists: true, isComplete, profile: profile as UserProfile }
+      return { exists: true, isComplete, profile: toUserProfile(profile) }
     } catch {
       return { exists: false, isComplete: false }
     }
@@ -157,9 +179,9 @@ class AuthService {
         id: profileData.id,
         username: validatedData.username,
         full_name: validatedData.full_name,
-        position: validatedData.position,
+        position: toPositionEnum(validatedData.position),
         avatar_url: validatedData.avatar_url,
-      }
+      } satisfies ProfileInsert
 
       const { data, error } = await supabase.from('profiles').upsert(dataToUpsert).select().single()
 
@@ -176,7 +198,7 @@ class AuthService {
         return { success: false, error: error.message, errorCode: AuthErrorCode.UNKNOWN_ERROR }
       }
 
-      return { success: true, data: data as UserProfile }
+      return { success: true, data: toUserProfile(data) }
     } catch (error) {
       // Catch de errores de validación de Zod
       if (error instanceof Error) {

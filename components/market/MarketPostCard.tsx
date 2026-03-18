@@ -2,7 +2,7 @@ import { POSICIONES_ARGENTINAS, Posicion } from '@/lib/constants'
 import { MarketPost } from '@/types/market'
 import { MapPin, MessageCircle, Shield, Trash2, User } from 'lucide-react-native'
 import React from 'react'
-import { Image, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, Image, Text, TouchableOpacity, View } from 'react-native'
 
 interface MarketPostCardProps {
   item: MarketPost
@@ -28,6 +28,23 @@ export const MarketPostCard = ({
 
   const imageUrl = isTeamPost ? item.team?.logo_url : item.profile?.avatar_url
   const isOwner = item.user_id === currentUserId
+
+  const handleDeletePress = () => {
+    if (!onDelete) return
+
+    Alert.alert(
+      'Eliminar publicación',
+      '¿Estás seguro? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => onDelete(item.id),
+        },
+      ],
+    )
+  }
 
   // Derived values
   const location = item.team?.home_zone || null
@@ -103,7 +120,7 @@ export const MarketPostCard = ({
           {/* Delete Button */}
           {isOwner && onDelete && (
             <TouchableOpacity
-              onPress={() => onDelete(item.id)}
+              onPress={handleDeletePress}
               className='p-2 -mt-1 -mr-1 flex-shrink-0'
             >
               <Trash2 size={18} color='#D93036' strokeWidth={2} />
@@ -139,8 +156,19 @@ export const MarketPostCard = ({
             </TouchableOpacity>
           </View>
         ) : (
-          <View className='pt-3 border-t border-border items-center'>
-            <Text className='text-muted-foreground text-xs font-medium'>Tu publicación</Text>
+          <View className='pt-3 border-t border-border'>
+            <View className='flex-row items-center justify-between'>
+              <Text className='text-muted-foreground text-xs font-medium'>Tu publicación</Text>
+              {onDelete && (
+                <TouchableOpacity
+                  onPress={handleDeletePress}
+                  className='flex-row items-center gap-1.5 bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2'
+                >
+                  <Trash2 size={14} color='#D93036' strokeWidth={2} />
+                  <Text className='text-error text-xs font-semibold'>Eliminar publicación</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         )}
       </View>

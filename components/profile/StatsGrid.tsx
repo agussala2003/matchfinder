@@ -41,7 +41,7 @@ export function StatsGrid({ matches, goals, wins, mvps, onPress }: StatsGridProp
   return <Card className=''>{content}</Card>
 }
 
-const StatItem = ({ icon, value, label }: { icon: any; value: string; label: string }) => (
+const StatItem = ({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) => (
   <View className='items-center flex-1'>
     <View className='mb-1'>{icon}</View>
     <Text className='text-text-main font-title text-xl'>{value}</Text>

@@ -1,12 +1,14 @@
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
+import { TeamStats, statsService } from '@/services/stats.service'
 import { TeamMemberDetail } from '@/services/teams.service'
 import { UserRole } from '@/types/core'
 import { Team } from '@/types/teams'
+import { RelativePathString, router } from 'expo-router'
 import { MapPin, Users, X } from 'lucide-react-native'
-import React, { useState } from 'react'
-import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { TeamMemberCard } from '../teams/TeamMemberCard'; // ✅ Importamos la card oficial
 import { ChallengeRelationship } from './RivalCard'
 
@@ -26,6 +28,7 @@ interface TeamDetailModalProps {
   onAccept: () => void
   onReject: () => void
   onCancel: () => void
+  activeMatchId?: string
 
   relationship: ChallengeRelationship
 }
@@ -42,9 +45,37 @@ export function TeamDetailModal({
   onAccept,
   onReject,
   onCancel,
+  activeMatchId,
   relationship,
 }: TeamDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'INFO' | 'MEMBERS'>('INFO')
+  const [teamStats, setTeamStats] = useState<TeamStats | null>(null)
+  const [loadingStats, setLoadingStats] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadTeamStats() {
+      if (!visible || !team?.id) {
+        setLoadingStats(false)
+        return
+      }
+
+      setLoadingStats(true)
+      const result = await statsService.getTeamStats(team.id)
+
+      if (isMounted) {
+        setTeamStats(result.success ? result.data ?? null : null)
+        setLoadingStats(false)
+      }
+    }
+
+    loadTeamStats()
+
+    return () => {
+      isMounted = false
+    }
+  }, [visible, team?.id])
 
   if (!team) return null
 
@@ -164,9 +195,22 @@ export function TeamDetailModal({
                   )}
 
                   <View className='flex-row gap-3 mb-6'>
-                    <StatBox label='Partidos' value='0' />
-                    <StatBox label='Victorias' value='0' highlight />
-                    <StatBox label='Derrotas' value='0' />
+                    <StatBox
+                      label='Partidos'
+                      value={teamStats?.totalMatches ?? 0}
+                      isLoading={loadingStats}
+                    />
+                    <StatBox
+                      label='Victorias'
+                      value={teamStats?.wins ?? 0}
+                      highlight
+                      isLoading={loadingStats}
+                    />
+                    <StatBox
+                      label='Derrotas'
+                      value={teamStats?.losses ?? 0}
+                      isLoading={loadingStats}
+                    />
                   </View>
                 </>
               ) : (
@@ -230,8 +274,11 @@ export function TeamDetailModal({
               <Button
                 title='Ver Partido'
                 variant='outline'
+                disabled={!activeMatchId}
                 onPress={() => {
-                  /* Navegar al chat */
+                  if (!activeMatchId) return
+                  onClose()
+                  router.push(`/match/${activeMatchId}` as RelativePathString)
                 }}
               />
             )}
@@ -242,15 +289,26 @@ export function TeamDetailModal({
   )
 }
 
-const StatBox = ({ label, value, highlight }: any) => (
+interface StatBoxProps {
+  label: string
+  value: string | number
+  highlight?: boolean
+  isLoading?: boolean
+}
+
+const StatBox = ({ label, value, highlight = false, isLoading = false }: StatBoxProps) => (
   <View
     className={`flex-1 p-4 rounded-xl border items-center justify-center ${
       highlight ? 'bg-primary/5 border-primary/20' : 'bg-card border-border'
     }`}
   >
-    <Text className={`text-2xl font-title ${highlight ? 'text-primary' : 'text-text-main'}`}>
-      {value}
-    </Text>
+    {isLoading ? (
+      <ActivityIndicator size='small' color={highlight ? '#22C55E' : '#9CA3AF'} />
+    ) : (
+      <Text className={`text-2xl font-title ${highlight ? 'text-primary' : 'text-text-main'}`}>
+        {value}
+      </Text>
+    )}
     <Text className='text-text-muted text-[10px] uppercase font-bold mt-1'>{label}</Text>
   </View>
 )

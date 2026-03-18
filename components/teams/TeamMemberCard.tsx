@@ -34,6 +34,7 @@ export function TeamMemberCard({
       activeOpacity={shouldShowActions ? 0.7 : 1}
       onPress={shouldShowActions ? onPress : undefined}
       disabled={!shouldShowActions}
+      testID={`team-member-${userId}`}
     >
       <Card className='flex-row items-center p-3.5'>
         {/* Avatar */}

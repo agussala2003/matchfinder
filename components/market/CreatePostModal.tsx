@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
+import { useGlobalLoading } from '@/context/GlobalLoadingContext'
 import { useToast } from '@/context/ToastContext'
 import { POSICIONES_ARGENTINAS, POSICIONES_LISTA } from '@/lib/constants'
 import { authService } from '@/services/auth.service'
@@ -34,8 +35,8 @@ const POSITIONS = POSICIONES_LISTA.map((key) => ({
 
 export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModalProps) {
     const { showToast } = useToast()
+    const { withGlobalLoading } = useGlobalLoading()
 
-    const [loading, setLoading] = useState(false)
     const [type, setType] = useState<MarketPostType>('PLAYER_SEEKING_TEAM')
     const [position, setPosition] = useState('ANY')
     const [description, setDescription] = useState('')
@@ -78,18 +79,23 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
             return
         }
 
-        setLoading(true)
         try {
             const session = await authService.getSession()
             if (!session.data?.user) return
 
-            const res = await marketService.createPost({
-                type,
-                user_id: session.data.user.id,
-                team_id: type === 'TEAM_SEEKING_PLAYER' ? selectedTeamId! : undefined,
-                position_needed: position === 'ANY' ? undefined : position,
-                description: description.trim() || undefined,
-            })
+            const res = await withGlobalLoading(
+                marketService.createPost({
+                    type,
+                    user_id: session.data.user.id,
+                    team_id: type === 'TEAM_SEEKING_PLAYER' ? selectedTeamId! : undefined,
+                    position_needed: position === 'ANY' ? undefined : position,
+                    description: description.trim() || undefined,
+                }),
+                {
+                    message: 'Publicando en el mercado...',
+                    blocking: true,
+                },
+            )
 
             if (res.success) {
                 showToast('Publicación creada con éxito', 'success')
@@ -104,8 +110,6 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
         } catch (e) {
             console.error(e)
             showToast('Error inesperado', 'error')
-        } finally {
-            setLoading(false)
         }
     }
 
@@ -268,9 +272,9 @@ export function CreatePostModal({ visible, onClose, onSuccess }: CreatePostModal
                             className='px-6 py-4 border-t border-border gap-3'
                         >
                             <Button
-                                title={loading ? 'PUBLICANDO...' : 'PUBLICAR'}
+                                title='PUBLICAR'
                                 onPress={handleCreate}
-                                disabled={loading || (type === 'TEAM_SEEKING_PLAYER' && !selectedTeamId)}
+                                disabled={type === 'TEAM_SEEKING_PLAYER' && !selectedTeamId}
                                 variant='primary'
                             />
                             <Button title='Cancelar' variant='secondary' onPress={onClose} />

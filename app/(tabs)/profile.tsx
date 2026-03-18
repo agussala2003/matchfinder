@@ -103,9 +103,12 @@ export default function ProfileScreen() {
 
     if (publicUrl) {
       const updateResult = await authService.upsertProfile({
-        ...profile,
+        id: profile.id,
+        username: profile.username,
+        full_name: profile.full_name,
+        position: profile.position || 'ANY',
         avatar_url: publicUrl,
-      } as any)
+      })
 
       if (updateResult.success) {
         setProfile({ ...profile, avatar_url: publicUrl })
@@ -273,7 +276,14 @@ export default function ProfileScreen() {
   )
 }
 
-const MenuOption = ({ icon, label, onPress, isLast }: any) => (
+interface MenuOptionProps {
+  icon: React.ReactNode
+  label: string
+  onPress?: () => void
+  isLast: boolean
+}
+
+const MenuOption = ({ icon, label, onPress, isLast }: MenuOptionProps) => (
   <TouchableOpacity
     onPress={onPress}
     className={`flex-row items-center p-5 active:bg-modal ${!isLast ? 'border-b border-border' : ''}`}

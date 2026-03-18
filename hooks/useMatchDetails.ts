@@ -192,7 +192,12 @@ export function useMatchDetails(matchId: string | undefined) {
         const result = await chatService.respondProposal(msg.id, 'ACCEPTED')
 
         if (result.success) {
-            const pData: any = msg.proposal_data
+            const pData = msg.proposal_data
+            if (!pData?.date || !pData?.time) {
+                showToast('La propuesta no tiene fecha u hora válida', 'error')
+                return
+            }
+
             const combinedDateTimeString = `${pData.date}T${pData.time}:00`
             const combinedDate = parseISO(combinedDateTimeString)
             const isoString = combinedDate.toISOString()
@@ -237,7 +242,7 @@ export function useMatchDetails(matchId: string | undefined) {
         else showToast('Error al cancelar propuesta', 'error')
     }
 
-    async function updateMatchDetails(propDate: Date, propTime: Date, propVenue: string, propIsFriendly: boolean) {
+    async function updateMatchDetails(propDate: Date, propTime: Date, _propVenue: string, propIsFriendly: boolean) {
         if (!canManage || !match) return false
 
         const combinedDate = set(propDate, {
@@ -322,7 +327,25 @@ export function useMatchDetails(matchId: string | undefined) {
     async function claimWalkover(evidenceUrl: string) {
         if (!match || !myTeamId) return
 
-        const status = myTeamId === match.team_a.id ? 'WO_A' : 'WO_B'
+        // VALIDACIÓN ESTRICTA: Regla de negocio para W.O.
+        const isTeamA = myTeamId === match.team_a.id
+        const myTeamCheckedIn = isTeamA ? match.checkin_team_a : match.checkin_team_b
+        const rivalCheckedIn = isTeamA ? match.checkin_team_b : match.checkin_team_a
+
+        // Condición 1: Mi equipo debe haber hecho check-in
+        if (!myTeamCheckedIn) {
+            showToast('❌ Tu equipo debe hacer check-in antes de reclamar W.O.', 'error')
+            return false
+        }
+
+        // Condición 2: El rival NO debe haber hecho check-in
+        if (rivalCheckedIn) {
+            showToast('❌ No puedes reclamar W.O. porque el equipo rival ya hizo check-in', 'error')
+            return false
+        }
+
+        // Si pasa ambas validaciones, proceder con el W.O.
+        const status = isTeamA ? 'WO_A' : 'WO_B'
 
         const updateRes = await matchesService.updateMatch(match.id, {
             status: status,
@@ -330,7 +353,7 @@ export function useMatchDetails(matchId: string | undefined) {
         })
 
         if (updateRes.success) {
-            showToast('W.O. Reclamado exitosamente', 'success')
+            showToast('✅ W.O. Reclamado exitosamente', 'success')
             initializeMatch()
             return true
         } else {

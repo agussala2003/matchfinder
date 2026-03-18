@@ -1,15 +1,18 @@
 import { ChatMessage } from '@/services/chat.service'
+import { MatchDetail } from '@/services/matches.service'
 import { Calendar, Lock, Send } from 'lucide-react-native'
 import React, { RefObject } from 'react'
 import { FlatList, Keyboard, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { ChatMessageItem } from './ChatMessageItem'
 
+type TeamSummary = MatchDetail['team_a']
+
 interface ChatSectionProps {
   messages: ChatMessage[]
   flatListRef: RefObject<FlatList | null>
   myTeamId: string
-  myTeam: any
-  rivalTeam: any
+  myTeam: TeamSummary | null
+  rivalTeam: TeamSummary | null
   canManage: boolean
   inputText: string
   setInputText: (text: string) => void

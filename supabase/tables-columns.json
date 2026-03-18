@@ -58,28 +58,35 @@
   {
     "table_schema": "public",
     "table_name": "conversations",
-    "column_name": "participant_a",
-    "data_type": "uuid",
+    "column_name": "chat_type",
+    "data_type": "text",
     "is_nullable": "NO"
   },
   {
     "table_schema": "public",
     "table_name": "conversations",
-    "column_name": "participant_b",
+    "column_name": "team_id",
     "data_type": "uuid",
-    "is_nullable": "NO"
+    "is_nullable": "YES"
   },
   {
     "table_schema": "public",
     "table_name": "conversations",
-    "column_name": "last_message_at",
+    "column_name": "player_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "conversations",
+    "column_name": "created_at",
     "data_type": "timestamp with time zone",
     "is_nullable": "NO"
   },
   {
     "table_schema": "public",
     "table_name": "conversations",
-    "column_name": "created_at",
+    "column_name": "last_message_at",
     "data_type": "timestamp with time zone",
     "is_nullable": "NO"
   },
@@ -103,6 +110,13 @@
     "column_name": "sender_id",
     "data_type": "uuid",
     "is_nullable": "NO"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "direct_messages",
+    "column_name": "sender_team_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
   },
   {
     "table_schema": "public",
@@ -375,6 +389,20 @@
     "table_name": "matches",
     "column_name": "created_at",
     "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "checkin_team_a",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "matches",
+    "column_name": "checkin_team_b",
+    "data_type": "boolean",
     "is_nullable": "YES"
   },
   {

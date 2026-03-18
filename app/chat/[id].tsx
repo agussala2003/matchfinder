@@ -1,7 +1,8 @@
+import { PageLoader } from '@/components/ui/PageLoader'
 import { useToast } from '@/context/ToastContext'
 import { supabase } from '@/lib/supabase'
 import { authService } from '@/services/auth.service'
-import { Conversation, dmService } from '@/services/dm.service'
+import { Conversation, DirectMessageWithSender, dmService } from '@/services/dm.service'
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { ArrowLeft, Send, Shield } from 'lucide-react-native'
@@ -22,7 +23,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // --- COMPONENTE DE MENSAJE ANIMADO ---
-const AnimatedMessageItem = ({ item, userId, conversation }: { item: any, userId: string, conversation: Conversation | null }) => {
+const AnimatedMessageItem = ({ item, userId, conversation }: { item: DirectMessageWithSender, userId: string, conversation: Conversation | null }) => {
     const fadeAnim = useRef(new Animated.Value(0)).current
     const slideAnim = useRef(new Animated.Value(10)).current
 
@@ -143,7 +144,7 @@ export default function ChatScreen() {
     const insets = useSafeAreaInsets()
 
     const [conversation, setConversation] = useState<Conversation | null>(null)
-    const [messages, setMessages] = useState<any[]>([]) 
+    const [messages, setMessages] = useState<DirectMessageWithSender[]>([])
     const [loading, setLoading] = useState(true)
     const [userId, setUserId] = useState<string>('')
     const [inputText, setInputText] = useState('')
@@ -178,6 +179,8 @@ export default function ChatScreen() {
                 setMessages(msgRes.data)
             }
 
+            await dmService.markConversationAsRead(conversationId, uid)
+
             if (isMounted) setLoading(false)
         }
 
@@ -200,12 +203,17 @@ export default function ChatScreen() {
                     // Traer mensaje completo con datos del sender
                     const { data } = await supabase
                         .from('direct_messages')
-                        .select('*, sender:profiles!sender_id(id, full_name, avatar_url)')
+                        .select('*, sender:profiles!sender_id(id, full_name, username, avatar_url)')
                         .eq('id', payload.new.id)
                         .single()
                     
                     if (data) {
-                        setMessages((prev) => [data, ...prev])
+                        setMessages((prev) => [data as DirectMessageWithSender, ...prev])
+
+                        const incomingSenderId = (data as DirectMessageWithSender).sender_id
+                        if (incomingSenderId && incomingSenderId !== userId) {
+                            await dmService.markConversationAsRead(conversationId, userId)
+                        }
                     }
                 }
             )
@@ -215,7 +223,7 @@ export default function ChatScreen() {
             isMounted = false
             supabase.removeChannel(channel)
         }
-    }, [conversationId])
+    }, [conversationId, userId])
 
     async function handleSend() {
         if (!inputText.trim() || sending) return
@@ -258,11 +266,7 @@ export default function ChatScreen() {
     const headerData = getHeaderInfo()
 
     if (loading) {
-        return (
-            <View className='flex-1 bg-background items-center justify-center'>
-                <ActivityIndicator size='large' color='#00D54B' />
-            </View>
-        )
+        return <PageLoader visible={true} />
     }
 
     return (
@@ -343,7 +347,7 @@ export default function ChatScreen() {
                     }`}
                 >
                     {sending ? (
-                        <ActivityIndicator size="small" color={!inputText.trim() ? '#6B7280' : '#121217'} />
+                        <ActivityIndicator size="small" color="#00D54B" />
                     ) : (
                         <Send
                             size={20}
@@ -361,7 +365,13 @@ export default function ChatScreen() {
 }
 
 // Subcomponente para renderizar Avatar en la lista
-const AvatarDisplay = ({ item, conversation, userId }: any) => {
+interface AvatarDisplayProps {
+    item: DirectMessageWithSender
+    conversation: Conversation | null
+    userId: string
+}
+
+const AvatarDisplay = ({ item, conversation, userId }: AvatarDisplayProps) => {
     // Si es chat de equipo y yo soy el jugador, el otro lado es el Equipo (usamos logo si no hay avatar individual)
     if (conversation?.chat_type === 'TEAM_PLAYER' && conversation.player_id === userId) {
         // Mostrar avatar del sender (miembro del equipo) o fallback al escudo

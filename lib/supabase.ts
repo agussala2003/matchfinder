@@ -1,3 +1,4 @@
+import { Database } from '@/types/supabase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
 import { AppState, Platform } from 'react-native'
@@ -8,7 +9,7 @@ const supabaseUrl = CONFIG.supabase.url
 const supabaseAnonKey = CONFIG.supabase.anonKey
 
 // Solo crear el cliente en plataformas nativas, no en web SSR
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     // En Web usa localStorage por defecto, en Native usa AsyncStorage
     storage: Platform.OS === 'web' ? undefined : AsyncStorage,

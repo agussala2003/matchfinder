@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/context/ToastContext'
 import { PlayerStats, statsService } from '@/services/stats.service'
+import type { LucideIcon } from 'lucide-react-native'
 import { Award, Target, TrendingUp, Trophy, User, X } from 'lucide-react-native'
 import React, { useCallback, useEffect, useState } from 'react'
 import {
@@ -53,7 +54,7 @@ export function PlayerStatsModal({ visible, onClose, userId }: PlayerStatsModalP
         subtitle, 
         color = '#00D54B' 
     }: {
-        icon: any
+        icon: LucideIcon
         title: string
         value: string | number
         subtitle?: string

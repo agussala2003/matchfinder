@@ -22,6 +22,8 @@ export function RivalCard({
   canChallenge,
   relationship,
 }: RivalCardProps) {
+  const handlePress = relationship === 'NONE' && canChallenge ? onChallenge : onPress
+
   const renderAction = () => {
     if (!canChallenge) return null
 
@@ -45,7 +47,7 @@ export function RivalCard({
 
   return (
     <View className='mb-3'>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
         <Card className='p-4'>
           <View className='flex-row items-center justify-between gap-3'>
             {/* SECCIÓN IZQUIERDA: Avatar + Info */}

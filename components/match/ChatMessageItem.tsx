@@ -1,13 +1,16 @@
 import { ChatMessage } from '@/services/chat.service'
+import { MatchDetail } from '@/services/matches.service'
 import { Calendar, Check, Clock, MapPin, Shield, X } from 'lucide-react-native'
 import React from 'react'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 
+type TeamSummary = MatchDetail['team_a']
+
 interface ChatMessageItemProps {
   item: ChatMessage
   myTeamId: string
-  myTeam: any
-  rivalTeam: any
+  myTeam: TeamSummary | null
+  rivalTeam: TeamSummary | null
   canManage: boolean
   onAccept: (msg: ChatMessage) => void
   onReject: (msg: ChatMessage) => void
@@ -59,7 +62,7 @@ export const ChatMessageItem = ({
     // (Simplified for brevity - keeping original proposal return matching the original file style 
     // but ensuring variables are correct).
     // Actually, let's just update the text message part which is the main issue.
-    const pData: any = item.proposal_data || {}
+    const pData = item.proposal_data
     return (
       <View className={`my-3 w-full flex-row ${isMe ? 'justify-end' : 'justify-start'}`}>
         {!isMe && (
@@ -116,7 +119,7 @@ export const ChatMessageItem = ({
                 <View className="flex-row justify-between items-start mb-4">
                   <View className="flex-1">
                     <Text className="text-foreground text-xl font-bold mb-1">
-                      {pData.date ? new Date(pData.date + 'T00:00:00').toLocaleDateString('es-AR', {
+                      {pData?.date ? new Date(pData.date + 'T00:00:00').toLocaleDateString('es-AR', {
                         weekday: 'short',
                         day: '2-digit',
                         month: 'short',
@@ -124,9 +127,9 @@ export const ChatMessageItem = ({
                     </Text>
                     <View className="flex-row items-center gap-2 mb-2">
                       <Clock size={14} color="#00D54B" strokeWidth={2} />
-                      <Text className="text-foreground font-medium">{pData.time ? pData.time + ' hs' : ''}</Text>
+                      <Text className="text-foreground font-medium">{pData?.time ? pData.time + ' hs' : ''}</Text>
                     </View>
-                    {pData.venue && (
+                    {pData?.venue && (
                       <View className="flex-row items-center gap-2">
                         <MapPin size={12} color="#A1A1AA" strokeWidth={2} />
                         <Text className="text-muted-foreground text-xs">{pData.venue}</Text>
@@ -140,6 +143,11 @@ export const ChatMessageItem = ({
                   <View className="flex-row gap-2 mt-2 pt-2 border-t border-border">
                     <TouchableOpacity onPress={() => onReject(item)} className="flex-1 bg-destructive/20 py-2.5 rounded-lg border border-destructive/40 flex-row items-center justify-center gap-1.5"><X size={14} color="#D93036" /><Text className="text-destructive font-bold text-xs">Rechazar</Text></TouchableOpacity>
                     <TouchableOpacity onPress={() => onAccept(item)} className="flex-1 bg-primary py-2.5 rounded-lg flex-row items-center justify-center gap-1.5"><Check size={14} color="#121217" /><Text className="text-primary-foreground font-bold text-xs">Aceptar</Text></TouchableOpacity>
+                  </View>
+                )}
+                {item.status === 'SENT' && isMe && canManage && (
+                  <View className="flex-row gap-2 mt-2 pt-2 border-t border-border">
+                    <TouchableOpacity onPress={() => onCancel(item)} className="flex-1 bg-secondary py-2.5 rounded-lg border border-border flex-row items-center justify-center gap-1.5"><X size={14} color="#A1A1AA" /><Text className="text-muted-foreground font-bold text-xs">Cancelar propuesta</Text></TouchableOpacity>
                   </View>
                 )}
                 {/* ... other statuses ... */}

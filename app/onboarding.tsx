@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Text, View } from 'react-native'
 
 // Services & Constants
+import { useGlobalLoading } from '@/context/GlobalLoadingContext'
 import { useToast } from '@/context/ToastContext'
 import { POSICIONES_ARGENTINAS, POSICIONES_LISTA, type Posicion } from '@/lib/constants'
 import { authService } from '@/services/auth.service'
@@ -18,11 +19,11 @@ export default function OnboardingScreen() {
   const [username, setUsername] = useState('')
   const [fullName, setFullName] = useState('')
   const [position, setPosition] = useState<Posicion>('ANY')
-  const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [errors, setErrors] = useState<{ username?: string; fullName?: string }>({})
 
   const { showToast } = useToast()
+  const { withGlobalLoading } = useGlobalLoading()
 
   const positionOptions = useMemo(() => {
     return POSICIONES_LISTA.map((key) => ({
@@ -54,19 +55,22 @@ export default function OnboardingScreen() {
       return
     }
 
-    setLoading(true)
-
     try {
-      const result = await authService.upsertProfile({
-        id: userId,
-        username: username.trim(),
-        full_name: fullName.trim(),
-        position: position,
-      })
+      const result = await withGlobalLoading(
+        authService.upsertProfile({
+          id: userId,
+          username: username.trim(),
+          full_name: fullName.trim(),
+          position: position,
+        }),
+        {
+          message: 'Guardando perfil...',
+          blocking: true,
+        },
+      )
 
       if (!result.success) {
         showToast(result.error || 'Error al crear el perfil', 'error')
-        setLoading(false)
         return
       }
 
@@ -75,7 +79,6 @@ export default function OnboardingScreen() {
     } catch (error) {
       console.error('Unexpected error:', error)
       showToast('Ocurrió un error inesperado', 'error')
-      setLoading(false)
     }
   }
 
@@ -115,7 +118,7 @@ export default function OnboardingScreen() {
           />
 
           <View className='mt-4'>
-            <Button title='Finalizar Registro' onPress={completeProfile} loading={loading} />
+            <Button title='Finalizar Registro' onPress={completeProfile} />
           </View>
         </View>
 

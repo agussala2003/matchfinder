@@ -1,15 +1,99 @@
 import { supabase } from '@/lib/supabase'
 import { ServiceResponse } from '@/types/core'
+import { Enums, Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
 
-export type MatchStatus =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'LIVE'
-  | 'FINISHED'
-  | 'WO_A'
-  | 'WO_B'
-  | 'WO_B'
-  | 'CANCELLED'
+export type MatchStatus = Enums<'estado_partido_enum'>
+
+type TeamRow = Tables<'teams'>
+type VenueRow = Tables<'venues'>
+type MatchRow = Tables<'matches'>
+type MatchMessageRow = Tables<'match_messages'>
+
+type TeamSummary = Pick<TeamRow, 'id' | 'name' | 'logo_url'>
+type VenueSummary = Pick<VenueRow, 'id' | 'name' | 'address' | 'latitude' | 'longitude'>
+type LastMessageSummary = Pick<MatchMessageRow, 'content' | 'sender_team_id' | 'created_at' | 'type'>
+
+type MatchWithTeams = MatchRow & {
+  team_a: TeamSummary | null
+  team_b: TeamSummary | null
+  venue?: VenueSummary | null
+  match_messages?: LastMessageSummary[] | null
+}
+
+const ACTIVE_MATCH_STATUSES: MatchStatus[] = ['PENDING', 'CONFIRMED', 'LIVE']
+const UPCOMING_MATCH_STATUSES: MatchStatus[] = ['PENDING', 'CONFIRMED']
+const LIVE_OR_CONFIRMED_STATUSES: MatchStatus[] = ['CONFIRMED', 'LIVE']
+
+function normalizeStatus(status: MatchRow['status']): MatchStatus {
+  return status ?? 'PENDING'
+}
+
+function mapTeamSummary(team: TeamSummary): { id: string; name: string; logo_url?: string } {
+  return {
+    id: team.id,
+    name: team.name,
+    logo_url: team.logo_url ?? undefined,
+  }
+}
+
+function mapVenueSummary(venue: VenueSummary | null | undefined):
+  | {
+      id: string
+      name: string
+      address: string
+      latitude: number
+      longitude: number
+    }
+  | undefined {
+  if (!venue) return undefined
+  return {
+    id: venue.id,
+    name: venue.name,
+    address: venue.address,
+    latitude: venue.latitude,
+    longitude: venue.longitude,
+  }
+}
+
+function mapLastMessage(
+  message: LastMessageSummary | undefined,
+):
+  | {
+      content: string
+      sender_team_id: string
+      created_at: string
+      type: string
+    }
+  | undefined {
+  if (!message) return undefined
+  if (!message.content || !message.sender_team_id || !message.created_at || !message.type) return undefined
+
+  return {
+    content: message.content,
+    sender_team_id: message.sender_team_id,
+    created_at: message.created_at,
+    type: message.type,
+  }
+}
+
+function toMatchDetail(row: MatchWithTeams): MatchDetail | null {
+  if (!row.team_a || !row.team_b) return null
+
+  return {
+    id: row.id,
+    scheduled_at: row.scheduled_at,
+    status: normalizeStatus(row.status),
+    is_friendly: row.is_friendly ?? false,
+    booking_confirmed: row.booking_confirmed ?? false,
+    wo_evidence_url: row.wo_evidence_url,
+    team_a: mapTeamSummary(row.team_a),
+    team_b: mapTeamSummary(row.team_b),
+    venue: mapVenueSummary(row.venue),
+    season_id: row.season_id,
+    checkin_team_a: row.checkin_team_a ?? false,
+    checkin_team_b: row.checkin_team_b ?? false,
+  }
+}
 
 export interface MatchResult {
   match_id: string
@@ -49,8 +133,10 @@ export interface MatchDetail {
   wo_evidence_url: string | null
   team_a: { id: string; name: string; logo_url?: string }
   team_b: { id: string; name: string; logo_url?: string }
-  venue?: { id: string; name: string; address: string }
+  venue?: { id: string; name: string; address: string; latitude: number; longitude: number }
   season_id: string | null
+  checkin_team_a: boolean
+  checkin_team_b: boolean
 }
 
 class MatchesService {
@@ -81,26 +167,37 @@ class MatchesService {
 
       if (error) throw error
 
-      const matches: MatchPreview[] = (data || []).map((m: any) => {
-        const isHome = m.team_a.id === teamId
+      const rows = (data ?? []) as MatchWithTeams[]
+      const matches = rows
+        .map((row): MatchPreview | null => {
+          if (!row.team_a || !row.team_b) return null
 
-        // Obtener el último mensaje
-        const messages = m.match_messages || []
-        const lastMsg = messages.sort(
-          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-        )[0]
+          const isHome = row.team_a.id === teamId
+          const messages = (row.match_messages ?? []).slice().sort((a, b) => {
+            const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
+            const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
+            return bTime - aTime
+          })
 
-        return {
-          id: m.id,
-          scheduled_at: m.scheduled_at,
-          status: m.status as MatchStatus,
-          is_friendly: m.is_friendly,
-          booking_confirmed: m.booking_confirmed,
-          my_role: isHome ? 'HOME' : 'AWAY',
-          rival: isHome ? m.team_b : m.team_a,
-          last_message: lastMsg,
-        }
-      })
+          const lastMessage = mapLastMessage(messages[0])
+
+          const preview: MatchPreview = {
+            id: row.id,
+            scheduled_at: row.scheduled_at,
+            status: normalizeStatus(row.status),
+            is_friendly: row.is_friendly ?? false,
+            booking_confirmed: row.booking_confirmed ?? false,
+            my_role: isHome ? 'HOME' : 'AWAY',
+            rival: mapTeamSummary(isHome ? row.team_b : row.team_a),
+          }
+
+          if (lastMessage) {
+            preview.last_message = lastMessage
+          }
+
+          return preview
+        })
+        .filter((m): m is MatchPreview => m !== null)
 
       return { success: true, data: matches }
     } catch (error) {
@@ -131,7 +228,7 @@ class MatchesService {
         .or(
           `and(team_a_id.eq.${teamAId},team_b_id.eq.${teamBId}),and(team_a_id.eq.${teamBId},team_b_id.eq.${teamAId})`,
         )
-        .in('status', ['PENDING', 'CONFIRMED', 'LIVE']) // Solo matches activos
+        .in('status', ACTIVE_MATCH_STATUSES) // Solo matches activos
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -142,17 +239,10 @@ class MatchesService {
         return { success: true, data: null }
       }
 
-      const match: MatchDetail = {
-        id: data.id,
-        scheduled_at: data.scheduled_at,
-        status: data.status as MatchStatus,
-        is_friendly: data.is_friendly,
-        booking_confirmed: data.booking_confirmed,
-        wo_evidence_url: data.wo_evidence_url,
-        team_a: data.team_a,
-        team_b: data.team_b,
-        venue: data.venue,
-        season_id: data.season_id,
+      const row = data as MatchWithTeams
+      const match = toMatchDetail(row)
+      if (!match) {
+        return { success: false, error: 'Partido incompleto: faltan equipos relacionados' }
       }
 
       return { success: true, data: match }
@@ -170,7 +260,7 @@ class MatchesService {
           *,
           team_a:teams!team_a_id (id, name, logo_url),
           team_b:teams!team_b_id (id, name, logo_url),
-          venue:venues (id, name, address)
+          venue:venues (id, name, address, latitude, longitude)
         `,
         )
         .eq('id', matchId)
@@ -178,17 +268,10 @@ class MatchesService {
 
       if (error) throw error
 
-      const match: MatchDetail = {
-        id: data.id,
-        scheduled_at: data.scheduled_at,
-        status: data.status as MatchStatus,
-        is_friendly: data.is_friendly,
-        booking_confirmed: data.booking_confirmed,
-        wo_evidence_url: data.wo_evidence_url,
-        team_a: data.team_a,
-        team_b: data.team_b,
-        venue: data.venue,
-        season_id: data.season_id,
+      const row = data as MatchWithTeams
+      const match = toMatchDetail(row)
+      if (!match) {
+        return { success: false, error: 'Partido incompleto: faltan equipos relacionados' }
       }
 
       return { success: true, data: match }
@@ -209,7 +292,8 @@ class MatchesService {
     }>,
   ): Promise<ServiceResponse> {
     try {
-      const { error } = await supabase.from('matches').update(updates).eq('id', matchId)
+      const payload: TablesUpdate<'matches'> = updates
+      const { error } = await supabase.from('matches').update(payload).eq('id', matchId)
 
       if (error) throw error
       return { success: true }
@@ -221,9 +305,13 @@ class MatchesService {
   async saveMatchResult(result: MatchResult): Promise<ServiceResponse> {
     try {
       // Upsert into match_results
+      const payload: TablesInsert<'match_results'> = {
+        ...result,
+      }
+
       const { error } = await supabase
         .from('match_results')
-        .upsert(result, { onConflict: 'match_id' })
+        .upsert(payload, { onConflict: 'match_id' })
 
       if (error) throw error
       return { success: true }
@@ -232,6 +320,52 @@ class MatchesService {
       return { success: false, error: (error as Error).message }
     }
   }
+  async getUserNextMatch(userId: string): Promise<ServiceResponse<MatchDetail | null>> {
+    try {
+      // 1. Get active team memberships
+      const { data: memberships } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', userId)
+        .eq('status', 'ACTIVE')
+
+      if (!memberships || memberships.length === 0) return { success: true, data: null }
+
+      const teamIds = memberships.map((m) => m.team_id)
+
+      // 2. Fetch the single closest upcoming match
+      const { data, error } = await supabase
+        .from('matches')
+        .select(
+          `
+          *,
+          team_a:teams!team_a_id (id, name, logo_url),
+          team_b:teams!team_b_id (id, name, logo_url),
+          venue:venues (id, name, address)
+        `,
+        )
+        .or(`team_a_id.in.(${teamIds.join(',')}),team_b_id.in.(${teamIds.join(',')})`)
+        .in('status', UPCOMING_MATCH_STATUSES)
+        .gte('scheduled_at', new Date().toISOString())
+        .order('scheduled_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (error) throw error
+      if (!data) return { success: true, data: null }
+
+      const row = data as MatchWithTeams
+      const match = toMatchDetail(row)
+      if (!match) {
+        return { success: false, error: 'Partido incompleto: faltan equipos relacionados' }
+      }
+
+      return { success: true, data: match }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  }
+
   async getUserUpcomingMatches(userId: string): Promise<ServiceResponse<MatchPreview[]>> {
     try {
       // 1. Get user teams
@@ -260,29 +394,51 @@ class MatchesService {
         `,
         )
         .or(`team_a_id.in.(${teamIds.join(',')}),team_b_id.in.(${teamIds.join(',')})`)
-        .in('status', ['CONFIRMED', 'LIVE'])
+        .in('status', LIVE_OR_CONFIRMED_STATUSES)
         .gte('scheduled_at', new Date().toISOString()) // Only future matches
         .order('scheduled_at', { ascending: true }) // Closest first
 
       if (error) throw error
 
-      const matches: MatchPreview[] = (data || []).map((m: any) => {
-        const myTeamId = teamIds.find((id) => id === m.team_a.id || id === m.team_b.id)
-        const isHome = m.team_a.id === myTeamId // Approximation, actually implies relation to user's team
+      const rows = (data ?? []) as MatchWithTeams[]
+      const matches: MatchPreview[] = rows
+        .map((row) => {
+          if (!row.team_a || !row.team_b) return null
 
-        return {
-          id: m.id,
-          scheduled_at: m.scheduled_at,
-          status: m.status as MatchStatus,
-          is_friendly: m.is_friendly,
-          booking_confirmed: m.booking_confirmed,
-          my_role: isHome ? 'HOME' : 'AWAY',
-          rival: m.team_a.id === myTeamId ? m.team_b : m.team_a,
-          // last_message omitted for list view efficiency if not needed
-        }
-      })
+          const myTeamId = teamIds.find((id) => id === row.team_a?.id || id === row.team_b?.id)
+          if (!myTeamId) return null
+
+          const isHome = row.team_a.id === myTeamId
+
+          return {
+            id: row.id,
+            scheduled_at: row.scheduled_at,
+            status: normalizeStatus(row.status),
+            is_friendly: row.is_friendly ?? false,
+            booking_confirmed: row.booking_confirmed ?? false,
+            my_role: isHome ? 'HOME' : 'AWAY',
+            rival: mapTeamSummary(row.team_a.id === myTeamId ? row.team_b : row.team_a),
+          }
+        })
+        .filter((m): m is MatchPreview => m !== null)
 
       return { success: true, data: matches }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  }
+
+  async submitTeamCheckin(matchId: string, isTeamA: boolean): Promise<ServiceResponse> {
+    try {
+      const columnToUpdate = isTeamA ? 'checkin_team_a' : 'checkin_team_b'
+      const { error } = await supabase
+        .from('matches')
+        .update({ [columnToUpdate]: true })
+        .eq('id', matchId)
+
+      if (error) throw error
+
+      return { success: true }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }

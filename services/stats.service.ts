@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { ServiceResponse } from '@/types/core'
+import { Enums, Tables, TablesInsert } from '@/types/supabase'
 
 export interface PlayerStat {
     userId: string
@@ -22,11 +23,27 @@ export interface PlayerStats {
     reputation: number
 }
 
+type TeamCategory = Enums<'team_category'>
+type MatchRow = Tables<'matches'>
+type MatchResultRow = Tables<'match_results'>
+type PlayerStatRow = Tables<'player_stats'>
+
+type MatchResultWithMatch = MatchResultRow & {
+    matches: Pick<MatchRow, 'id' | 'team_a_id' | 'team_b_id'> | null
+}
+
+type TeamMatchWithResult = Pick<MatchRow, 'id' | 'team_a_id' | 'team_b_id' | 'status'> & {
+    match_results:
+        | Pick<MatchResultRow, 'goals_a' | 'goals_b' | 'is_draw'>
+        | Pick<MatchResultRow, 'goals_a' | 'goals_b' | 'is_draw'>[]
+        | null
+}
+
 export interface TeamStats {
     teamId: string
     teamName: string
     logoUrl?: string
-    category: string
+    category: TeamCategory
     homeZone: string
     eloRating: number
     totalMatches: number
@@ -39,6 +56,23 @@ export interface TeamStats {
     winRate: number
 }
 
+function hasValidScore(result: Pick<MatchResultRow, 'goals_a' | 'goals_b'>): result is {
+    goals_a: number
+    goals_b: number
+} {
+    return result.goals_a !== null && result.goals_b !== null
+}
+
+function firstResult(
+    result:
+        | Pick<MatchResultRow, 'goals_a' | 'goals_b' | 'is_draw'>
+        | Pick<MatchResultRow, 'goals_a' | 'goals_b' | 'is_draw'>[]
+        | null,
+): Pick<MatchResultRow, 'goals_a' | 'goals_b' | 'is_draw'> | null {
+    if (!result) return null
+    return Array.isArray(result) ? result[0] ?? null : result
+}
+
 class StatsService {
     /**
      * Guarda las estadísticas de los jugadores para un partido específico.
@@ -48,7 +82,7 @@ class StatsService {
         try {
             if (stats.length === 0) return { success: true }
 
-            const payload = stats.map(s => ({
+            const payload: TablesInsert<'player_stats'>[] = stats.map((s) => ({
                 match_id: matchId,
                 user_id: s.userId,
                 team_id: s.teamId,
@@ -89,13 +123,13 @@ class StatsService {
             if (error) throw error
 
             return { success: true }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error saving player stats:', error)
             return { success: false, error: (error as Error).message }
         }
     }
 
-    async getMatchStats(matchId: string): Promise<ServiceResponse<any[]>> {
+    async getMatchStats(matchId: string): Promise<ServiceResponse<PlayerStatRow[]>> {
         try {
             const { data, error } = await supabase
                 .from('player_stats')
@@ -103,8 +137,8 @@ class StatsService {
                 .eq('match_id', matchId)
 
             if (error) throw error
-            return { success: true, data }
-        } catch (error) {
+            return { success: true, data: data ?? [] }
+        } catch (error: unknown) {
             return { success: false, error: (error as Error).message }
         }
     }
@@ -128,7 +162,13 @@ class StatsService {
                 return { success: true, data: { matches: 0, goals: 0, wins: 0, mvps: 0 } }
             }
 
-            const matchIds = playerStats.map(s => s.match_id).filter(Boolean) as string[]
+            const matchIds = playerStats
+                .map((s) => s.match_id)
+                .filter((id): id is string => typeof id === 'string')
+
+            if (matchIds.length === 0) {
+                return { success: true, data: { matches: 0, goals: 0, wins: 0, mvps: 0 } }
+            }
 
             // 2. Obtener resultados de esos partidos
             const { data: results, error: resultsError } = await supabase
@@ -147,16 +187,18 @@ class StatsService {
 
             let matchesCount = playerStats.length
             let goalsCount = playerStats.reduce((sum, s) => sum + (s.goals || 0), 0)
-            let mvpsCount = playerStats.filter(s => s.is_mvp).length
+            let mvpsCount = playerStats.filter((s) => s.is_mvp).length
             let winsCount = 0
 
-            playerStats.forEach(stat => {
-                const match = matches?.find(m => m.id === stat.match_id)
-                const result = results?.find(r => r.match_id === stat.match_id)
+            playerStats.forEach((stat) => {
+                const match = matches?.find((m) => m.id === stat.match_id)
+                const result = results?.find((r) => r.match_id === stat.match_id)
 
                 if (match && result) {
                     const isTeamA = match.team_a_id === stat.team_id
                     const isTeamB = match.team_b_id === stat.team_id
+
+                    if (!hasValidScore(result)) return
 
                     if (isTeamA && result.goals_a > result.goals_b) {
                         winsCount++
@@ -176,7 +218,7 @@ class StatsService {
                 }
             }
 
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error fetching user stats:', error)
             return { success: false, error: (error as Error).message }
         }
@@ -206,14 +248,32 @@ class StatsService {
 
             // 3. Calcular estadísticas básicas
             const totalGoals = playerStats?.reduce((sum, stat) => sum + (stat.goals || 0), 0) || 0
-            const mvpCount = playerStats?.filter(stat => stat.is_mvp).length || 0
+            const mvpCount = playerStats?.filter((stat) => stat.is_mvp).length || 0
             const totalMatches = playerStats?.length || 0
 
             // 4. Obtener resultados de partidos para calcular win rate
             let wins = 0, draws = 0, losses = 0
 
             if (playerStats && playerStats.length > 0) {
-                const matchIds = playerStats.map(stat => stat.match_id)
+                const matchIds = playerStats
+                    .map((stat) => stat.match_id)
+                    .filter((id): id is string => typeof id === 'string')
+                if (matchIds.length === 0) {
+                    const emptyStats: PlayerStats = {
+                        userId,
+                        fullName: profile.full_name,
+                        username: profile.username ?? undefined,
+                        avatarUrl: profile.avatar_url ?? undefined,
+                        totalGoals,
+                        totalMatches,
+                        mvpCount,
+                        winRate: 0,
+                        drawRate: 0,
+                        lossRate: 0,
+                        reputation: profile.reputation ?? 5.0,
+                    }
+                    return { success: true, data: emptyStats }
+                }
                 
                 const { data: matchResults } = await supabase
                     .from('match_results')
@@ -230,12 +290,17 @@ class StatsService {
                     `)
                     .in('match_id', matchIds)
 
+                const typedResults = (matchResults ?? []) as MatchResultWithMatch[]
+
                 // Para cada partido, determinar si ganó, empató o perdió
-                for (const result of matchResults || []) {
-                    const playerStat = playerStats.find(ps => ps.match_id === result.match_id)
+                for (const result of typedResults) {
+                    const playerStat = playerStats.find((ps) => ps.match_id === result.match_id)
                     if (!playerStat) continue
 
                     const match = result.matches
+                    if (!match) continue
+                    if (!hasValidScore(result)) continue
+
                     const isTeamA = playerStat.team_id === match.team_a_id
                     
                     if (result.is_draw) {
@@ -258,21 +323,21 @@ class StatsService {
             const stats: PlayerStats = {
                 userId,
                 fullName: profile.full_name,
-                username: profile.username,
-                avatarUrl: profile.avatar_url,
+                username: profile.username ?? undefined,
+                avatarUrl: profile.avatar_url ?? undefined,
                 totalGoals,
                 totalMatches,
                 mvpCount,
                 winRate: Math.round(winRate * 100) / 100,
                 drawRate: Math.round(drawRate * 100) / 100,
                 lossRate: Math.round(lossRate * 100) / 100,
-                reputation: profile.reputation || 5.0
+                reputation: profile.reputation ?? 5.0
             }
 
             return { success: true, data: stats }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('getPlayerStats error:', error)
-            return { success: false, error: error.message }
+            return { success: false, error: (error as Error).message }
         }
     }
 
@@ -313,9 +378,12 @@ class StatsService {
             let wins = 0, draws = 0, losses = 0
             let goalsFor = 0, goalsAgainst = 0
 
-            for (const match of matches || []) {
-                const result = match.match_results?.[0]
+            const typedMatches = (matches ?? []) as TeamMatchWithResult[]
+
+            for (const match of typedMatches) {
+                const result = firstResult(match.match_results)
                 if (!result) continue
+                if (!hasValidScore(result)) continue
 
                 const isTeamA = match.team_a_id === teamId
                 const teamGoals = isTeamA ? result.goals_a : result.goals_b
@@ -340,10 +408,10 @@ class StatsService {
             const stats: TeamStats = {
                 teamId,
                 teamName: team.name,
-                logoUrl: team.logo_url,
+                logoUrl: team.logo_url ?? undefined,
                 category: team.category,
                 homeZone: team.home_zone,
-                eloRating: team.elo_rating || 1200,
+                eloRating: team.elo_rating ?? 1200,
                 totalMatches,
                 wins,
                 draws,
@@ -355,9 +423,9 @@ class StatsService {
             }
 
             return { success: true, data: stats }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('getTeamStats error:', error)
-            return { success: false, error: error.message }
+            return { success: false, error: (error as Error).message }
         }
     }
 }

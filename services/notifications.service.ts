@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { Json, TablesInsert } from '@/types/supabase'
 
 export interface Notification {
     id: string
@@ -6,10 +7,12 @@ export interface Notification {
     type: 'TEAM_INVITE' | 'MATCH_ALERT' | 'MATCH_RESULT' | 'SYSTEM'
     title: string
     message: string
-    data?: any
+    data?: Json
     is_read: boolean
     created_at: string
 }
+
+type NotificationInsertInput = Omit<Notification, 'id' | 'created_at' | 'is_read'>
 
 export const notificationsService = {
     async getUserNotifications(userId: string) {
@@ -35,10 +38,19 @@ export const notificationsService = {
             .eq('is_read', false)
     },
 
-    async createNotification(notification: Omit<Notification, 'id' | 'created_at' | 'is_read'>) {
+    async createNotification(notification: NotificationInsertInput) {
+        const payload: TablesInsert<'notifications'> = {
+            user_id: notification.user_id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            data: notification.data ?? null,
+            is_read: false,
+        }
+
         return await supabase
             .from('notifications')
-            .insert(notification)
+            .insert(payload)
     },
 
     // Realtime subscription helper could be added here

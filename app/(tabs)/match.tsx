@@ -1,5 +1,6 @@
 import { EmptyState, MatchSection } from '@/components/match-list'
 import { Button } from '@/components/ui/Button'
+import { PageLoader } from '@/components/ui/PageLoader'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
 import { Select } from '@/components/ui/Select'
 import { authService } from '@/services/auth.service'
@@ -10,7 +11,7 @@ import { Team } from '@/types/teams'
 import { router, useFocusEffect } from 'expo-router'
 import { Calendar } from 'lucide-react-native'
 import React, { useCallback, useState } from 'react'
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native'
+import { RefreshControl, ScrollView, Text, View } from 'react-native'
 
 export default function MatchScreen() {
   const [myTeams, setMyTeams] = useState<Team[]>([])
@@ -92,11 +93,7 @@ export default function MatchScreen() {
   }
 
   if (loading && !refreshing) {
-    return (
-      <View className='flex-1 bg-background items-center justify-center'>
-        <ActivityIndicator size='large' color='#39FF14' />
-      </View>
-    )
+    return <PageLoader visible={true} />
   }
 
   if (!currentTeam) {

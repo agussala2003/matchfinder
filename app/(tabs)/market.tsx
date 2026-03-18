@@ -6,6 +6,7 @@ import { PlayerStatsModal } from '@/components/profile'
 import { TeamStatsModal } from '@/components/teams'
 import { ScreenLayout } from '@/components/ui/ScreenLayout'
 import { Select } from '@/components/ui/Select'
+import { useGlobalLoading } from '@/context/GlobalLoadingContext'
 import { useToast } from '@/context/ToastContext'
 import { POSICIONES_ARGENTINAS, POSICIONES_LISTA } from '@/lib/constants'
 import { authService } from '@/services/auth.service'
@@ -26,12 +27,16 @@ const POSITIONS = POSICIONES_LISTA.map(key => ({
 type Tab = 'PLAYERS' | 'TEAMS' | 'MESSAGES'
 
 export default function MarketScreen() {
+  const PAGE_SIZE = 10
   const [activeTab, setActiveTab] = useState<Tab>('PLAYERS') // 'PLAYERS' = Teams seeking players, 'TEAMS' = Players seeking teams
 
   // Data States
   const [posts, setPosts] = useState<MarketPost[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
   const [modalVisible, setModalVisible] = useState(false)
   const [teamSelectionVisible, setTeamSelectionVisible] = useState(false)
   const [selectedPost, setSelectedPost] = useState<MarketPost | null>(null)
@@ -48,6 +53,7 @@ export default function MarketScreen() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [myTeamIds, setMyTeamIds] = useState<string[]>([])
   const { showToast } = useToast()
+  const { withGlobalLoading } = useGlobalLoading()
 
   useFocusEffect(
     useCallback(() => {
@@ -55,15 +61,21 @@ export default function MarketScreen() {
     }, [])
   )
 
-  const loadPosts = useCallback(async () => {
-    setLoading(true)
+  const loadPosts = useCallback(async (targetPage = 0, append = false) => {
+    if (append) {
+      if (loadingMore || loading || refreshing || !hasMore) return
+      setLoadingMore(true)
+    } else if (!refreshing) {
+      setLoading(true)
+    }
+
     // Map Tab to Filter Type:
     // 'PLAYERS' Tab -> Display posts where TEAMS are seeking players (TEAM_SEEKING_PLAYER)
     // 'TEAMS' Tab -> Display posts where PLAYERS are seeking teams (PLAYER_SEEKING_TEAM)
     const type = activeTab === 'PLAYERS' ? 'TEAM_SEEKING_PLAYER' : (activeTab === 'TEAMS' ? 'PLAYER_SEEKING_TEAM' : undefined)
 
     if (type) {
-      const res = await marketService.getPosts(type)
+      const res = await marketService.getPosts(type, targetPage, PAGE_SIZE)
       if (res.success && res.data) {
         let data = res.data
 
@@ -83,19 +95,45 @@ export default function MarketScreen() {
           })
         }
 
-        setPosts(data)
+        setPosts(prev => (append ? [...prev, ...data] : data))
+        setPage(targetPage)
+        setHasMore(res.data.length === PAGE_SIZE)
       }
     }
+
+    if (!type) {
+      setPosts([])
+      setHasMore(false)
+    }
+
     setLoading(false)
     setRefreshing(false)
-  }, [activeTab, selectedPosition, currentUserId, myTeamIds])
+    setLoadingMore(false)
+  }, [activeTab, selectedPosition, currentUserId, myTeamIds, loadingMore, loading, refreshing, hasMore])
+
+  const resetAndLoadPosts = useCallback(async () => {
+    setHasMore(true)
+    await loadPosts(0, false)
+  }, [loadPosts])
+
+  const handleLoadMore = useCallback(() => {
+    if (activeTab === 'MESSAGES') return
+    if (!hasMore || loading || loadingMore || refreshing) return
+    loadPosts(page + 1, true)
+  }, [activeTab, hasMore, loading, loadingMore, refreshing, page, loadPosts])
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true)
+    setHasMore(true)
+    loadPosts(0, false)
+  }, [loadPosts])
 
   useFocusEffect(
     useCallback(() => {
       if (activeTab !== 'MESSAGES') {
-        loadPosts()
+        resetAndLoadPosts()
       }
-    }, [activeTab, loadPosts])
+    }, [activeTab, resetAndLoadPosts])
   )
 
   async function checkUser() {
@@ -125,14 +163,18 @@ export default function MarketScreen() {
       showToast('Debes iniciar sesión', 'error')
       return
     }
-
-    setLoading(true)
     
     try {
       if (post.type === 'TEAM_SEEKING_PLAYER' && post.team_id) {
         // CASO 1: Equipo busca jugador - el jugador contacta al equipo
         const { teamChatService } = await import('@/services/team-chat.service')
-        const res = await teamChatService.getOrCreateTeamConversation(post.team_id, currentUserId)
+        const res = await withGlobalLoading(
+          teamChatService.getOrCreateTeamConversation(post.team_id, currentUserId),
+          {
+            message: 'Abriendo chat con el equipo...',
+            blocking: true,
+          },
+        )
         
         if (res.success && res.data) {
           router.push(`/chat/${res.data}`)
@@ -166,10 +208,6 @@ export default function MarketScreen() {
     } catch (error) {
       console.error('Error in handleContact:', error)
       showToast('Error inesperado', 'error')
-    } finally {
-      if (post.type !== 'PLAYER_SEEKING_TEAM' || !selectedPost) {
-        setLoading(false)
-      }
     }
   }
   
@@ -178,9 +216,12 @@ export default function MarketScreen() {
     
     try {
       const { teamChatService } = await import('@/services/team-chat.service')
-      const res = await teamChatService.getOrCreateTeamToPlayerConversation(
-        fromTeam.id, 
-        currentUserId,
+      const res = await withGlobalLoading(
+        teamChatService.getOrCreateTeamToPlayerConversation(fromTeam.id, post.user_id),
+        {
+          message: 'Abriendo chat con el jugador...',
+          blocking: true,
+        },
       )
       
       if (res.success && res.data) {
@@ -192,7 +233,6 @@ export default function MarketScreen() {
       console.error('Error creating team conversation:', error)
       showToast('Error inesperado', 'error')
     } finally {
-      setLoading(false)
       setSelectedPost(null)
     }
   }
@@ -292,7 +332,22 @@ export default function MarketScreen() {
                   )}
                   contentContainerStyle={{ paddingBottom: 100, paddingTop: 4 }}
                   showsVerticalScrollIndicator={false}
-                  refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadPosts(); }} tintColor="#00D54B" />}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={handleRefresh}
+                      tintColor="#00D54B"
+                    />
+                  }
+                  onEndReached={handleLoadMore}
+                  onEndReachedThreshold={0.35}
+                  ListFooterComponent={
+                    loadingMore ? (
+                      <View className="py-4 items-center justify-center">
+                        <ActivityIndicator color="#00D54B" />
+                      </View>
+                    ) : null
+                  }
                   ListEmptyComponent={
                     <View className="items-center justify-center mt-20 px-10">
                       <Shield size={48} color="#27272A" />
@@ -322,7 +377,7 @@ export default function MarketScreen() {
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           onSuccess={() => {
-            loadPosts()
+            resetAndLoadPosts()
             setModalVisible(false)
           }}
         />
@@ -332,7 +387,6 @@ export default function MarketScreen() {
           onClose={() => {
             setTeamSelectionVisible(false)
             setSelectedPost(null)
-            setLoading(false)
           }}
           onSelectTeam={handleTeamSelection}
           userId={currentUserId || ''}

@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 
 // Services & Context
+import { useGlobalLoading } from '@/context/GlobalLoadingContext'
 import { useToast } from '@/context/ToastContext'
 import { authService } from '@/services/auth.service'
 import { AuthType } from '@/types/auth'
@@ -16,13 +17,12 @@ import { ScreenLayout } from '@/components/ui/ScreenLayout'
 export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
 
   const { showToast } = useToast()
+  const { withGlobalLoading } = useGlobalLoading()
 
   async function handleAuth(type: AuthType) {
-    if (loading) return
     setErrors({})
 
     if (!email || !password) {
@@ -30,17 +30,19 @@ export default function LoginScreen() {
       return
     }
 
-    setLoading(true)
-
     try {
-      const result =
+      const result = await withGlobalLoading(
         type === AuthType.LOGIN
-          ? await authService.login({ email, password })
-          : await authService.signup({ email, password })
+          ? authService.login({ email, password })
+          : authService.signup({ email, password }),
+        {
+          message: type === AuthType.LOGIN ? 'Iniciando sesión...' : 'Creando cuenta...',
+          blocking: true,
+        },
+      )
 
       if (!result.success) {
         showToast(result.error || 'Error al autenticar', 'error')
-        setLoading(false)
         return
       }
 
@@ -52,7 +54,6 @@ export default function LoginScreen() {
     } catch (error) {
       console.error('Unexpected error:', error)
       showToast('Error inesperado', 'error')
-      setLoading(false)
     }
   }
 
@@ -62,8 +63,6 @@ export default function LoginScreen() {
       router.replace(check.isComplete ? '/(tabs)' : '/onboarding')
     } catch {
       router.replace('/onboarding')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -100,13 +99,12 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <View className='gap-3 mt-2'>
-            <Button title='Ingresar' onPress={() => handleAuth(AuthType.LOGIN)} loading={loading} />
+            <Button title='Ingresar' onPress={() => handleAuth(AuthType.LOGIN)} />
 
             <Button
               title='Crear Cuenta'
               variant='secondary'
               onPress={() => handleAuth(AuthType.SIGNUP)}
-              disabled={loading}
             />
           </View>
         </View>

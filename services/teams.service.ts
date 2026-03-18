@@ -2,8 +2,62 @@ import { CONFIG } from '@/lib/config'
 import { supabase } from '@/lib/supabase'
 import { UserProfile } from '@/types/auth'
 import { ServiceResponse, TeamMemberStatus, UserRole } from '@/types/core'
-import { Team, createTeamSchema, TeamSafeUpdate } from '@/types/teams'
+import { Enums, Tables, TablesUpdate } from '@/types/supabase'
+import { createTeamSchema, Team, TeamSafeUpdate } from '@/types/teams'
 import { ZodError } from 'zod'
+
+type TeamRow = Tables<'teams'>
+type TeamMemberRow = Tables<'team_members'>
+type ProfileRow = Tables<'profiles'>
+type TeamCategory = Enums<'team_category'>
+
+type TeamMemberWithTeam = Pick<TeamMemberRow, 'team_id'> & {
+  teams: TeamRow | null
+}
+
+type TeamMemberWithProfile = Pick<TeamMemberRow, 'user_id' | 'role' | 'status'> & {
+  profile: ProfileRow | null
+}
+
+type PendingRequestWithTeam = Pick<TeamMemberRow, 'team_id' | 'status' | 'joined_at'> & {
+  team: Pick<TeamRow, 'name' | 'logo_url'> | null
+}
+
+function isTeamCategory(value: string): value is TeamCategory {
+  return value === 'MALE' || value === 'FEMALE' || value === 'MIXED'
+}
+
+function mapProfileRow(profile: ProfileRow | null): UserProfile {
+  return {
+    id: profile?.id ?? '',
+    username: profile?.username ?? '',
+    full_name: profile?.full_name ?? 'Jugador',
+    position: profile?.position ?? undefined,
+    avatar_url: profile?.avatar_url ?? undefined,
+    reputation: profile?.reputation ?? undefined,
+    created_at: profile?.created_at ?? undefined,
+  }
+}
+
+function mapTeamRow(team: TeamRow): Team {
+  return {
+    id: team.id,
+    name: team.name,
+    captain_id: team.captain_id ?? '',
+    elo_rating: team.elo_rating ?? CONFIG.defaults.eloRating,
+    home_zone: team.home_zone as Team['home_zone'],
+    category: team.category,
+    share_code: team.share_code ?? '',
+    logo_url: team.logo_url ?? undefined,
+    created_at: team.created_at ?? '',
+  }
+}
+
+function toTeamMemberStatus(status: TeamMemberRow['status']): TeamMemberStatus {
+  if (status === TeamMemberStatus.ACTIVE) return TeamMemberStatus.ACTIVE
+  if (status === TeamMemberStatus.INACTIVE) return TeamMemberStatus.INACTIVE
+  return TeamMemberStatus.PENDING
+}
 
 export interface TeamMemberDetail {
   user_id: string
@@ -41,6 +95,11 @@ class TeamsService {
   ): Promise<ServiceResponse<Team>> {
     try {
       const validatedData = createTeamSchema.parse({ name, homeZone, category, captainId })
+
+      if (!isTeamCategory(validatedData.category)) {
+        throw new Error('Categoría de equipo inválida')
+      }
+
       const { data: team, error: teamError } = await supabase
         .from('teams')
         .insert({
@@ -67,7 +126,7 @@ class TeamsService {
         await supabase.from('teams').delete().eq('id', team.id)
         throw memberError
       }
-      return { success: true, data: team as Team }
+      return { success: true, data: mapTeamRow(team) }
     } catch (error) {
       return { success: false, error: this.handleError(error) }
     }
@@ -85,7 +144,11 @@ class TeamsService {
 
       if (error) throw error
 
-      const teams = (data || []).map((item: any) => item.teams).filter((t) => t !== null) as Team[]
+      const rows = (data ?? []) as TeamMemberWithTeam[]
+      const teams = rows
+        .map((item) => item.teams)
+        .filter((team): team is TeamRow => team !== null)
+        .map(mapTeamRow)
 
       return { success: true, data: teams }
     } catch (error) {
@@ -97,37 +160,31 @@ class TeamsService {
     try {
       const { data, error } = await supabase.from('teams').select('*').eq('id', teamId).single()
       if (error) throw error
-      return { success: true, data: data as Team }
+      return { success: true, data: mapTeamRow(data) }
     } catch (error) {
       return { success: false, error: this.handleError(error) }
     }
   }
 
   async updateTeam(teamId: string, updates: TeamSafeUpdate): Promise<ServiceResponse<Team>> {
-    // SECURITY: Filtrar campos sensibles que NO deben ser editables desde el cliente
-    // Estos campos solo pueden ser modificados por el servidor (Edge Functions, Triggers)
-    const { 
-      elo_rating,      // Solo puede cambiar vía cálculo ELO después de partidos
-      captain_id,      // Solo puede cambiar vía transfer_team_captain()
-      share_code,      // Generado automáticamente por trigger
-      id,              // PK inmutable
-      created_at,      // Timestamp automático
-      ...safeUpdates   // Solo campos seguros
-    } = updates
-    
     // Validar que hay campos para actualizar
-    if (Object.keys(safeUpdates).length === 0) {
+    if (Object.keys(updates).length === 0) {
       return { success: false, error: 'No hay campos válidos para actualizar' }
+    }
+
+    const payload: TablesUpdate<'teams'> = {
+      ...updates,
+      logo_url: updates.logo_url ?? undefined,
     }
 
     const { data, error } = await supabase
       .from('teams')
-      .update(safeUpdates)  // Solo enviar campos seguros
+      .update(payload)
       .eq('id', teamId)
       .select()
       .single()
     if (error) return { success: false, error: error.message }
-    return { success: true, data: data as Team }
+    return { success: true, data: mapTeamRow(data) }
   }
 
   async getTeamMembers(teamId: string): Promise<ServiceResponse<TeamMemberDetail[]>> {
@@ -140,11 +197,12 @@ class TeamsService {
         .order('role', { ascending: true }) // Ordenar para que el capitán salga primero si es posible
 
       if (error) throw error
-      const members = (data || []).map((item: any) => ({
+      const rows = (data ?? []) as TeamMemberWithProfile[]
+      const members = rows.map((item) => ({
         user_id: item.user_id,
         role: item.role,
-        status: item.status,
-        profile: item.profile,
+        status: toTeamMemberStatus(item.status),
+        profile: mapProfileRow(item.profile),
       }))
       return { success: true, data: members }
     } catch (error) {
@@ -236,13 +294,14 @@ class TeamsService {
 
       if (error) throw error
 
-      const requests = (data || []).map((item: any) => ({
+      const rows = (data ?? []) as PendingRequestWithTeam[]
+      const requests = rows.map((item) => ({
         team_id: item.team_id,
-        status: item.status,
-        joined_at: item.joined_at,
+        status: toTeamMemberStatus(item.status),
+        joined_at: item.joined_at ?? '',
         team: {
           name: item.team?.name || 'Equipo desconocido',
-          logo_url: item.team?.logo_url,
+          logo_url: item.team?.logo_url ?? undefined,
         },
       }))
       return { success: true, data: requests }
@@ -299,7 +358,11 @@ class TeamsService {
 
       if (error) throw error
 
-      const teams = (data || []).map((item: any) => item.teams).filter((t: any) => t !== null) as Team[]
+      const rows = (data ?? []) as TeamMemberWithTeam[]
+      const teams = rows
+        .map((item) => item.teams)
+        .filter((team): team is TeamRow => team !== null)
+        .map(mapTeamRow)
 
       return { success: true, data: teams }
     } catch (error) {

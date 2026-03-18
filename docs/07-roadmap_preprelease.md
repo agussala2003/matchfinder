@@ -323,6 +323,32 @@ Estas son features que salen en sesiones posteriores pero conviene documentar:
 
 **Timebox total**: 5h 35min
 
+### Fase 1.5: Folklore y Retención (MVPs, Goleadores y Ranking)
+
+Objetivo: convertir cada partido en una historia compartible y medible para mejorar recurrencia semanal.
+
+Backend
+
+- [ ] Diseñar y aplicar modelo de eventos/estadísticas por partido (tabla dedicada por jugador y partido con constraints de unicidad por `match_id + user_id`)
+- [ ] Definir fuente de verdad del MVP por partido (un solo MVP por match con constraint único parcial o tabla dedicada)
+- [ ] Implementar reglas de puntuación/ranking por equipo (victoria/empate/derrota + diferencial opcional)
+- [ ] Crear vistas/RPC para leaderboard de goleadores (global + por temporada)
+- [ ] Crear vistas/RPC para ranking de equipos (por puntos y desempates)
+- [ ] Exponer endpoint/servicio para actualizar stats al confirmar resultado bilateral
+- [ ] Añadir validaciones de consistencia: suma de goles por jugador = goles de `match_results` por equipo
+- [ ] Endurecer RLS para que solo managers/autores válidos puedan cargar y confirmar stats
+
+Frontend
+
+- [ ] Extender flujo postpartido para registrar goleadores y seleccionar MVP
+- [ ] Crear UI de confirmación de stats entre ambos equipos (estado pendiente/confirmado)
+- [ ] Agregar sección "Folklore" en partido: MVP destacado + tabla de goleadores del match
+- [ ] Crear pantalla/tab de rankings con 2 vistas: "Tabla de Equipos" y "Top Goleadores"
+- [ ] Agregar indicadores de progresión (racha, subida/bajada en ranking, badges MVP)
+- [ ] Integrar estados vacíos y skeletons para rankings sin datos
+- [ ] Instrumentar eventos analíticos (view_ranking, submit_mvp, submit_scorers)
+- [ ] QA visual mobile-first (listas largas, empate de puntos, manejo de nulls)
+
 ### Fase 2: QA & REFINEMENT (Próxima sesión)
 
 - Tests de contrato para servicios críticos
@@ -336,6 +362,17 @@ Estas son features que salen en sesiones posteriores pero conviene documentar:
 - Compliance review (datasharing, GDPR si aplica)
 - Store assets (screenshots, descriptions)
 - Versión bump y release notes
+
+## ⚙️ DevOps & CI/CD
+
+- [ ] Configurar pipeline GitHub Actions en push/PR a `main`
+- [ ] Validar `npm ci` + `tsc --noEmit` + `eslint` como quality gate obligatorio
+- [ ] Bloquear merge si falla el pipeline (branch protection)
+- [ ] Agregar badge de estado CI en `README.md`
+- [ ] Definir convención de ramas y PR template mínimo (scope, pruebas, riesgo)
+- [ ] Estandarizar checks locales con script único (`npm run verify`)
+- [ ] Planificar workflow adicional de release (tag + changelog + build profile)
+- [ ] Documentar runbook de fallas CI para onboarding rápido
 
 ---
 

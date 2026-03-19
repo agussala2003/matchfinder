@@ -1,6 +1,8 @@
+import { TeamMemberDetail } from '@/services/teams.service'
 import React from 'react'
 import { EdgeInsets } from 'react-native-safe-area-context'
 import { EvidencePreviewModal } from './modals/EvidencePreviewModal'
+import { LoadMatchStatsModal } from './modals/LoadMatchStatsModal'
 import { MatchDateTimePickerSheet } from './modals/MatchDateTimePickerSheet'
 import { MatchEditFlowModal } from './modals/MatchEditFlowModal'
 import { MatchProposalFlowModal } from './modals/MatchProposalFlowModal'
@@ -39,6 +41,11 @@ interface MatchFlowModalsProps {
   onTakeEvidence: () => void
   onRetakeEvidence: () => void
   onConfirmEvidence: (evidenceUri: string) => void
+  showLoadStatsModal: boolean
+  setShowLoadStatsModal: (value: boolean) => void
+  matchId?: string
+  teamMembers?: TeamMemberDetail[]
+  myTeamId?: string
 }
 
 export function MatchFlowModals(props: MatchFlowModalsProps) {
@@ -102,6 +109,16 @@ export function MatchFlowModals(props: MatchFlowModalsProps) {
         }}
         onDismiss={() => props.setShowEvidencePreviewModal(false)}
       />
+
+      {props.matchId && props.teamMembers && props.myTeamId && (
+        <LoadMatchStatsModal
+          visible={props.showLoadStatsModal}
+          matchId={props.matchId}
+          teamMembers={props.teamMembers}
+          myTeamId={props.myTeamId}
+          onClose={() => props.setShowLoadStatsModal(false)}
+        />
+      )}
     </>
   )
 }

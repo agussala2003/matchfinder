@@ -60,6 +60,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name='ranking'
+        options={{
+          title: 'Ranking',
+          tabBarIcon: ({ color, focused }) => (
+            <Trophy size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name='market'
         options={{
           title: 'Mercado',

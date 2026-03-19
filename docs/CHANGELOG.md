@@ -47,3 +47,30 @@
 
 - Esta release marca el estado Feature-Complete del MVP para el Core Loop principal.
 - Se recomienda ejecutar una pasada final de QA manual en dispositivos fisicos antes de distribucion.
+
+## Sprint 4 - Competencia y Ranking (2026-03-18)
+
+### Motor Elo y Consistencia Transaccional
+
+- Ajuste del valor inicial de Elo a 1000 para nuevos equipos y backfill de equipos existentes con 1200.
+- Implementacion de motor matematico Elo (K=40) con soporte para victoria, derrota y empate.
+- Integracion del recalculo Elo al flujo de consolidacion de resultado de partido.
+- Garantia de idempotencia para evitar aplicar Elo dos veces en partidos ya finalizados.
+- Funcion SQL atomica para aplicar Elo y finalizar partido en una sola operacion segura.
+
+### Ranking Premium
+
+- Nueva pantalla de leaderboard con estructura visual competitiva y estilo podio.
+- Podio Hall of Fame para Top 3 con destaque de primer puesto al centro.
+- Tabla de posiciones con Elo resaltado y filas optimizadas para lectura rapida.
+- Resaltado de "TU EQUIPO" para identificar rapidamente equipos del usuario.
+- Header sticky con filtros por modalidad y zona.
+- Soporte de filtro por modalidad (con fallback compatible cuando preferred_format no existe en schema).
+- Filtro por zona con busqueda rapida por localidad.
+
+### Alertas y Confirmacion de Resultados
+
+- Trigger de notificacion en flujo de guardado de resultado.
+- Envio automatico a capitan y sub-admins activos del equipo rival.
+- Mensaje de alerta para ingresar y confirmar resultado antes de actualizar ranking.
+- Nueva pantalla de notificaciones y redireccion directa al partido al tocar notificaciones de resultado.

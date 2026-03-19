@@ -112,7 +112,7 @@ export default function HomeScreen() {
             {/* Bell */}
             <TouchableOpacity
               className='bg-card p-2 rounded-full border border-border relative'
-              onPress={() => router.push('/(tabs)/profile')}
+              onPress={() => router.push('/notifications')}
             >
               <Bell size={22} color={pendingRequestsCount > 0 ? '#EF4444' : '#39FF14'} />
               {pendingRequestsCount > 0 && (

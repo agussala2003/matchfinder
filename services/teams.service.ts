@@ -76,6 +76,22 @@ export interface OutgoingRequest {
   joined_at: string
 }
 
+export interface TeamRankingFilters {
+  zone?: string
+  format?: string
+}
+
+export interface TeamRankingItem {
+  id: string
+  name: string
+  logo_url?: string
+  elo_rating: number
+  home_zone: string
+  preferred_format?: string
+  wins?: number
+  losses?: number
+}
+
 class TeamsService {
   private handleError(error: unknown): string {
     if (error instanceof ZodError) {
@@ -365,6 +381,67 @@ class TeamsService {
         .map(mapTeamRow)
 
       return { success: true, data: teams }
+    } catch (error) {
+      return { success: false, error: this.handleError(error) }
+    }
+  }
+
+  async getTeamsRanking(
+    filters: TeamRankingFilters = {},
+    limit = 50,
+  ): Promise<ServiceResponse<TeamRankingItem[]>> {
+    try {
+      let query = (supabase as any)
+        .from('teams')
+        .select('id, name, logo_url, elo_rating, home_zone, preferred_format')
+        .order('elo_rating', { ascending: false })
+        .limit(limit)
+
+      if (filters.zone && filters.zone !== 'ALL' && filters.zone !== 'ANY') {
+        query = query.eq('home_zone', filters.zone)
+      }
+
+      if (filters.format && filters.format !== 'GLOBAL') {
+        query = query.eq('preferred_format', filters.format)
+      }
+
+      let { data, error } = await query
+
+      // Fallback para esquemas que todavía no tienen preferred_format.
+      if (error && error.message.toLowerCase().includes('preferred_format')) {
+        let legacyQuery = (supabase as any)
+          .from('teams')
+          .select('id, name, logo_url, elo_rating, home_zone')
+          .order('elo_rating', { ascending: false })
+          .limit(limit)
+
+        if (filters.zone && filters.zone !== 'ALL' && filters.zone !== 'ANY') {
+          legacyQuery = legacyQuery.eq('home_zone', filters.zone)
+        }
+
+        const legacyRes = await legacyQuery
+        data = legacyRes.data
+        error = legacyRes.error
+      }
+
+      if (error) throw error
+
+      const ranking = ((data ?? []) as Array<
+        Pick<TeamRow, 'id' | 'name' | 'logo_url' | 'elo_rating' | 'home_zone'> & {
+          preferred_format?: string | null
+        }
+      >).map((team) => ({
+        id: team.id,
+        name: team.name,
+        logo_url: team.logo_url ?? undefined,
+        elo_rating: team.elo_rating ?? CONFIG.defaults.eloRating,
+        home_zone: team.home_zone,
+        preferred_format: team.preferred_format ?? undefined,
+        wins: undefined,
+        losses: undefined,
+      }))
+
+      return { success: true, data: ranking }
     } catch (error) {
       return { success: false, error: this.handleError(error) }
     }

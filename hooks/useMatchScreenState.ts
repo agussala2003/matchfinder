@@ -34,6 +34,9 @@ export function useMatchScreenState() {
   const [showEvidencePreviewModal, setShowEvidencePreviewModal] = useState(false)
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false)
 
+  // Load Match Stats Modal
+  const [showLoadStatsModal, setShowLoadStatsModal] = useState(false)
+
   return {
     activeTab,
     setActiveTab,
@@ -79,5 +82,7 @@ export function useMatchScreenState() {
     setShowEvidencePreviewModal,
     isUploadingEvidence,
     setIsUploadingEvidence,
+    showLoadStatsModal,
+    setShowLoadStatsModal,
   }
 }

@@ -22,6 +22,7 @@ interface PostMatchViewProps {
   playerGoals: Record<string, number>
   setPlayerGoals: React.Dispatch<React.SetStateAction<Record<string, number>>>
   onSubmitResult: () => void
+  onOpenLoadStats?: () => void
   insets: EdgeInsets
 }
 
@@ -38,6 +39,7 @@ export function PostMatchView({
   playerGoals,
   setPlayerGoals,
   onSubmitResult,
+  onOpenLoadStats,
   insets,
 }: PostMatchViewProps) {
   return (
@@ -54,6 +56,7 @@ export function PostMatchView({
       playerGoals={playerGoals}
       setPlayerGoals={setPlayerGoals}
       onSubmitResult={onSubmitResult}
+      onOpenLoadStats={onOpenLoadStats}
       insets={insets}
     />
   )

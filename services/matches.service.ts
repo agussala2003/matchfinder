@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase'
+import { notificationsService } from '@/services/notifications.service'
 import { ServiceResponse } from '@/types/core'
 import { Enums, Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
+import { calculateNewElos } from '@/utils/elo'
 
 export type MatchStatus = Enums<'estado_partido_enum'>
 
@@ -12,6 +14,12 @@ type MatchMessageRow = Tables<'match_messages'>
 type TeamSummary = Pick<TeamRow, 'id' | 'name' | 'logo_url'>
 type VenueSummary = Pick<VenueRow, 'id' | 'name' | 'address' | 'latitude' | 'longitude'>
 type LastMessageSummary = Pick<MatchMessageRow, 'content' | 'sender_team_id' | 'created_at' | 'type'>
+type TeamEloSummary = Pick<TeamRow, 'id' | 'elo_rating'>
+type TeamLeadershipRow = {
+  user_id: string
+  role: Enums<'rol_enum'> | null
+  status: Enums<'estado_miembro_enum'> | null
+}
 
 type MatchWithTeams = MatchRow & {
   team_a: TeamSummary | null
@@ -304,16 +312,114 @@ class MatchesService {
 
   async saveMatchResult(result: MatchResult): Promise<ServiceResponse> {
     try {
-      // Upsert into match_results
-      const payload: TablesInsert<'match_results'> = {
-        ...result,
-      }
+      const payload: TablesInsert<'match_results'> = { ...result }
 
-      const { error } = await supabase
+      // Always persist latest submitted scoreboard.
+      const { error: upsertError } = await supabase
         .from('match_results')
         .upsert(payload, { onConflict: 'match_id' })
 
-      if (error) throw error
+      if (upsertError) throw upsertError
+
+      // Idempotency guard: if match is already FINISHED, Elo must not be recalculated.
+      const { data: matchData, error: matchError } = await supabase
+        .from('matches')
+        .select('id, status, team_a_id, team_b_id')
+        .eq('id', result.match_id)
+        .single()
+
+      if (matchError) throw matchError
+
+      if (!matchData.team_a_id || !matchData.team_b_id) {
+        throw new Error('No se pudieron resolver ambos equipos del partido')
+      }
+
+      if (matchData.status === 'FINISHED') {
+        return { success: true }
+      }
+
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('id, elo_rating')
+        .in('id', [matchData.team_a_id, matchData.team_b_id])
+
+      if (teamsError) throw teamsError
+
+      const typedTeams = (teamsData ?? []) as TeamEloSummary[]
+      const teamA = typedTeams.find((team) => team.id === matchData.team_a_id)
+      const teamB = typedTeams.find((team) => team.id === matchData.team_b_id)
+
+      if (!teamA || !teamB) {
+        throw new Error('No se encontraron ratings Elo de ambos equipos')
+      }
+
+      const eloA = teamA.elo_rating ?? 1000
+      const eloB = teamB.elo_rating ?? 1000
+
+      const { newEloA, newEloB } = calculateNewElos(eloA, eloB, result.goals_a, result.goals_b)
+
+      const { error: applyEloError } = await supabase.rpc('apply_match_elo_once', {
+        p_match_id: result.match_id,
+        p_team_a_id: matchData.team_a_id,
+        p_team_b_id: matchData.team_b_id,
+        p_new_elo_a: newEloA,
+        p_new_elo_b: newEloB,
+      })
+
+      if (applyEloError) throw applyEloError
+
+      // Notify rival leadership to review and confirm the loaded match result.
+      try {
+        const submittingTeamId = result.confirmed_by_a
+          ? matchData.team_a_id
+          : result.confirmed_by_b
+            ? matchData.team_b_id
+            : null
+        const rivalTeamId = result.confirmed_by_a
+          ? matchData.team_b_id
+          : result.confirmed_by_b
+            ? matchData.team_a_id
+            : null
+
+        if (submittingTeamId && rivalTeamId) {
+          const { data: submitterTeam, error: submitterTeamError } = await supabase
+            .from('teams')
+            .select('name')
+            .eq('id', submittingTeamId)
+            .single()
+
+          if (!submitterTeamError && submitterTeam?.name) {
+            const { data: rivalLeads, error: rivalLeadsError } = await supabase
+              .from('team_members')
+              .select('user_id, role, status')
+              .eq('team_id', rivalTeamId)
+              .eq('status', 'ACTIVE')
+              .in('role', ['ADMIN', 'SUB_ADMIN'])
+
+            if (!rivalLeadsError) {
+              const typedLeads = (rivalLeads ?? []) as TeamLeadershipRow[]
+              const notifications = typedLeads
+                .filter((lead) => lead.user_id)
+                .map((lead) =>
+                  notificationsService.createNotification({
+                    user_id: lead.user_id,
+                    type: 'MATCH_RESULT',
+                    title: 'Resultado pendiente de confirmacion',
+                    message: `⚽ ${submitterTeam.name} ha cargado el resultado del partido. ¡Entra a confirmar para actualizar tu Ranking!`,
+                    data: { matchId: result.match_id, source: 'MATCH_RESULT_CONFIRMATION' },
+                  }),
+                )
+
+              if (notifications.length > 0) {
+                await Promise.all(notifications)
+              }
+            }
+          }
+        }
+      } catch (notificationError) {
+        console.error('Error sending match result notifications:', notificationError)
+      }
+
       return { success: true }
     } catch (error) {
       console.error('Error saving match result:', error)

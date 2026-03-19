@@ -123,6 +123,7 @@ export function useMatchScreenWiring({ id, insets, flatListRef }: UseMatchScreen
               state.playerGoals,
               state.selectedMVP,
             ),
+          onOpenLoadStats: () => state.setShowLoadStatsModal(true),
           insets,
         }
       : null
@@ -163,6 +164,11 @@ export function useMatchScreenWiring({ id, insets, flatListRef }: UseMatchScreen
       actions.confirmAndUploadWalkoverEvidence(evidenceUri, () =>
         state.setShowWOModal(false),
       ),
+    showLoadStatsModal: state.showLoadStatsModal,
+    setShowLoadStatsModal: state.setShowLoadStatsModal,
+    matchId: details.match?.id,
+    teamMembers: details.teamMembers,
+    myTeamId: details.myTeamId,
   }
 
   return {

@@ -23,6 +23,7 @@ interface PostmatchSectionProps {
   playerGoals: Record<string, number>
   setPlayerGoals: (fn: (prev: Record<string, number>) => Record<string, number>) => void
   onSubmitResult: () => void
+  onOpenLoadStats?: () => void
   insets: { bottom: number }
 }
 
@@ -39,6 +40,7 @@ export const PostmatchSection = ({
   playerGoals,
   setPlayerGoals,
   onSubmitResult,
+  onOpenLoadStats,
   insets,
 }: PostmatchSectionProps) => (
   <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 40 }}>
@@ -174,12 +176,20 @@ export const PostmatchSection = ({
       </View>
     </View>
 
-    <Button
-      title="ENVIAR RESULTADO"
-      className="w-full h-14"
-      variant="primary"
-      onPress={onSubmitResult}
-      style={{ marginBottom: insets.bottom + 20 }}
-    />
+    <View className="gap-2">
+      <Button
+        title="CARGAR ESTADÍSTICAS INDIVIDUALES"
+        className="w-full h-12"
+        variant="secondary"
+        onPress={onOpenLoadStats}
+      />
+      <Button
+        title="ENVIAR RESULTADO"
+        className="w-full h-14"
+        variant="primary"
+        onPress={onSubmitResult}
+        style={{ marginBottom: insets.bottom + 20 }}
+      />
+    </View>
   </ScrollView>
 )

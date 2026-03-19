@@ -428,6 +428,77 @@ class StatsService {
             return { success: false, error: (error as Error).message }
         }
     }
+
+    /**
+     * Guarda las estadísticas del partido de forma masiva con soporte para MVP.
+     * Hace upsert aprovechando el UNIQUE CONSTRAINT en (match_id, user_id).
+     * 
+     * @param matchId - ID del partido
+     * @param statsData - Array de jugadores con sus estadísticas {userId, teamId, goals}
+     * @param mvpUserId - ID del jugador elegido como MVP
+     * @returns ServiceResponse indicando éxito o error
+     */
+    async saveMatchStats(
+        matchId: string,
+        statsData: Array<{ userId: string; teamId: string; goals: number }>,
+        mvpUserId?: string
+    ): Promise<ServiceResponse> {
+        try {
+            if (!matchId || !statsData || statsData.length === 0) {
+                return { success: false, error: 'matchId and statsData are required' }
+            }
+
+            // 1. Preparar payload: marcar is_mvp correctamente
+            const payload: TablesInsert<'player_stats'>[] = statsData.map((stat) => ({
+                match_id: matchId,
+                user_id: stat.userId,
+                team_id: stat.teamId,
+                // SECURITY: Validar y clamp valores de goles (máximo 30 por constraint DB)
+                goals: Math.max(0, Math.min(stat.goals, 30)),
+                // Solo el MVP tiene true, el resto false
+                is_mvp: mvpUserId ? stat.userId === mvpUserId : false
+            }))
+
+            // 2. Usar UPSERT para insertar o actualizar registros
+            // El UNIQUE CONSTRAINT en (match_id, user_id) permite hacer upsert seguro
+            const { error: upsertError } = await supabase
+                .from('player_stats')
+                .upsert(payload, {
+                    onConflict: 'match_id,user_id', // Especificar la columna del conflict
+                    ignoreDuplicates: false
+                })
+
+            if (upsertError) throw upsertError
+
+            // 3. Si mvpUserId fue especificado, garantizar que solo ese tenga is_mvp = true
+            // (en caso de que previamente hubiera un MVP diferente)
+            if (mvpUserId) {
+                // Restablecer todos los MVP a false en este partido
+                const { error: resetError } = await supabase
+                    .from('player_stats')
+                    .update({ is_mvp: false })
+                    .eq('match_id', matchId)
+                    .neq('user_id', mvpUserId)
+                    .eq('is_mvp', true)
+
+                if (resetError) throw resetError
+
+                // Establecer el MVP a true (con upsert ya está, pero confirmamos)
+                const { error: mvpError } = await supabase
+                    .from('player_stats')
+                    .update({ is_mvp: true })
+                    .eq('match_id', matchId)
+                    .eq('user_id', mvpUserId)
+
+                if (mvpError) throw mvpError
+            }
+
+            return { success: true }
+        } catch (error: unknown) {
+            console.error('Error saving match stats:', error)
+            return { success: false, error: (error as Error).message }
+        }
+    }
 }
 
 export const statsService = new StatsService()
